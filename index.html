@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="A five-planet math adventure for 4th graders that adapts its difficulty.">
+<title>Star Math Voyage</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
+<style>
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: one centered column on a night sky; a mission map of five planets, then one big question card with a rocket track above it and an alien guide talking below. Single dark look on purpose (space). */
+:root{
+  color-scheme:dark;
+  --bg:#0c0f2e; --panel:#191e4f; --panel2:#232a66; --line:#3a4290;
+  --fg:#f3f2ff; --muted:#b0b4de;
+  --accent:#ffc93c; --accent-ink:#2a1d00; --accent-deep:#b98700;
+  --good:#62e6aa; --bad:#ff9282; --half:#8fc7ff;
+  --rock1:#9a94b8; --rock2:#57527c; --rock3:#373260;
+  --display:"Fredoka","Trebuchet MS","Segoe UI",sans-serif;
+  --body:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.5;font-weight:600;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 48px}
+#sky,#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+#sky{z-index:0}#fx{z-index:5}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
+h1{font-family:var(--display);font-weight:700;font-size:1.7rem;margin:0;letter-spacing:.01em}
+h1 span{color:var(--accent)}
+h2{font-family:var(--display);font-weight:600;font-size:1.5rem;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:1.1rem;margin:0}
+p{margin:0}
+.stats{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-variant-numeric:tabular-nums}
+.rank{font-family:var(--display)}
+.dust{color:var(--accent);font-weight:800}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.ghost{background:none;border:2px solid var(--line);border-radius:999px;padding:6px 14px;color:var(--muted);font-weight:700}
+.ghost:hover{color:var(--fg);border-color:var(--muted)}
+.btn{background:var(--accent);color:var(--accent-ink);border:none;border-radius:14px;padding:12px 22px;font-family:var(--display);font-weight:600;font-size:1.15rem;box-shadow:0 4px 0 var(--accent-deep)}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--accent-deep)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.alt{background:var(--panel2);color:var(--fg);box-shadow:0 4px 0 var(--line)}
+.lead{color:var(--muted);max-width:60ch}
+
+/* planets and crew */
+.p1{--p:#ff7e6b}.p2{--p:#38d1c8}.p3{--p:#b792ff}.p4{--p:#9be564}.p5{--p:#ffb14a}
+.planet{display:block;width:92px;height:92px;border-radius:50%;flex:none;transition:transform .2s;
+  background:radial-gradient(circle at 30% 28%,color-mix(in srgb,var(--p) 55%,white),var(--p) 48%,color-mix(in srgb,var(--p) 35%,black));
+  box-shadow:0 0 28px color-mix(in srgb,var(--p) 45%,transparent)}
+.map{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:20px 12px}
+.pbtn{width:100%;background:none;border:none;padding:10px 4px;border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.pbtn:not(:disabled):hover .planet{transform:scale(1.07) rotate(8deg)}
+.pbtn:disabled{cursor:not-allowed}
+.pbtn:disabled .planet{filter:grayscale(1) brightness(.5);box-shadow:none}
+.ptext{display:flex;flex-direction:column;gap:2px;align-items:inherit;min-width:0}
+.pname{font-family:var(--display);font-size:1.2rem;font-weight:600}
+.pskill{color:var(--muted);font-size:.9rem;line-height:1.3}
+.stars{color:var(--accent);letter-spacing:.12em;font-size:1.15rem}
+.stars .off,.bigstars .off{color:var(--line)}
+.lock{color:var(--muted);font-size:.85rem}
+.crew{background:var(--panel);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.crewrow{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px 18px}
+.crewrow li{display:flex;flex-direction:column;align-items:center;font-size:.85rem;color:var(--muted);width:64px}
+.crewrow svg{width:52px;height:52px}
+.crewrow .lost svg{opacity:.28;filter:grayscale(1)}
+.champ{border:2px solid var(--accent);border-radius:18px;padding:14px 18px;background:var(--panel)}
+.foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;color:var(--muted)}
+@media (max-width:480px){
+  .map{grid-template-columns:1fr;gap:6px}
+  .pbtn{flex-direction:row;text-align:left;gap:14px;padding:8px 4px}
+  .planet{width:64px;height:64px}
+}
+
+/* play */
+.playhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 14px}
+.lvl{font-family:var(--display);font-size:1.2rem}
+.count{color:var(--muted);font-variant-numeric:tabular-nums}
+.meters{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;color:var(--muted);font-size:.95rem}
+.power{display:inline-flex;gap:4px;vertical-align:middle;margin-left:6px}
+.power i{width:14px;height:14px;border-radius:4px;background:var(--panel2);border:2px solid var(--line)}
+.power i.on{background:var(--accent);border-color:var(--accent)}
+.combo{font-family:var(--display);color:var(--accent)}
+.combo.hot{animation:pop .4s}
+.track{position:relative;height:48px}
+.track::before{content:"";position:absolute;left:0;right:30px;top:50%;border-top:3px dashed var(--line)}
+.track .planet{position:absolute;right:0;top:4px;width:40px;height:40px}
+.rocket{position:absolute;top:8px;left:calc(var(--t) * (100% - 96px));width:48px;height:32px;transition:left .7s cubic-bezier(.3,1.4,.5,1)}
+.rocket .flame{transform-origin:12px 16px;animation:flick .25s infinite alternate}
+.dots{list-style:none;display:flex;gap:8px;margin:0;padding:0}
+.dots li{flex:1;height:10px;border-radius:5px;background:var(--panel2)}
+.dots .d2{background:var(--good)}.dots .d1{background:var(--half)}.dots .d0{background:var(--bad)}
+.dots .cur{background:var(--accent)}
+.qcard{background:var(--panel);border-radius:22px;padding:24px 20px;display:flex;flex-direction:column;gap:18px}
+.tag{align-self:center;font-family:var(--display);color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:2px 14px;letter-spacing:.06em;text-transform:uppercase;font-size:.85rem}
+.q{font-family:var(--display);font-weight:500;font-size:1.5rem;line-height:1.35;text-wrap:balance}
+.q.math{font-size:2.3rem;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;justify-content:center}
+label{display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:.9rem}
+input{font-family:var(--display);font-size:1.6rem;width:7.5ch;padding:8px 10px;text-align:center;border-radius:14px;border:3px solid var(--line);background:var(--bg);color:var(--fg)}
+input.wide{width:9ch}
+.unit{color:var(--muted);align-self:center}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.choice{background:var(--panel2);border:3px solid var(--line);border-radius:16px;padding:14px 10px;font-family:var(--display);font-size:1.5rem;min-height:68px}
+.choice:not(:disabled):hover{border-color:var(--accent)}
+.choice.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 22%,var(--panel2))}
+.choice.wrong{border-color:var(--bad);opacity:.55}
+.choice.sm{font-size:1.15rem}
+.rocks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 12px}
+.rock{min-height:78px;padding:6px 4px;border:3px solid transparent;color:var(--fg);font-family:var(--display);font-size:1.25rem;
+  background:radial-gradient(circle at 30% 25%,var(--rock1),var(--rock2) 60%,var(--rock3));
+  border-radius:46% 54% 50% 50%/56% 44% 56% 44%;animation:bob 2.6s ease-in-out infinite alternate}
+.rock:nth-child(even){border-radius:54% 46% 44% 56%/45% 55% 45% 55%}
+.rock.long{font-size:1rem}
+.rock[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 30%,transparent),inset 0 0 18px color-mix(in srgb,var(--accent) 40%,transparent)}
+.rock.right{border-color:var(--good);animation:none}
+.rock.boom{animation:boom .55s forwards}
+.how{color:var(--muted);font-size:.9rem;text-align:center}
+.arena{position:relative;height:290px;overflow:hidden;border-radius:16px;background:var(--bg);border:2px solid var(--line)}
+.faller{position:absolute;top:0;width:var(--w);display:flex;justify-content:center;animation:fall linear infinite}
+.faller .rock{animation:none;width:min(92%,112px);min-height:62px}
+.faller .rock.long{font-size:.95rem}
+.faller .rock:not(:disabled):hover{border-color:var(--accent)}
+.faller .rock.boom{animation:boom .55s forwards}
+.faller .rock.dud{animation:shake .4s;opacity:.35}
+.ship{position:absolute;bottom:16px;width:48px;height:32px;transform:rotate(-90deg);transition:left .22s ease-out;z-index:2}
+.beam{position:absolute;width:6px;border-radius:3px;background:var(--accent);box-shadow:0 0 12px var(--accent);z-index:1}
+@keyframes fall{from{transform:translateY(-80px)}to{transform:translateY(300px)}}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@media (prefers-reduced-motion:reduce){.faller{animation:none;transform:translateY(70px)}.ship{transition:none}.faller .rock.dud{animation:none}}
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.1;margin:0 .15em;font-variant-numeric:tabular-nums}
+.frac span:first-child{border-bottom:.09em solid currentColor;padding:0 .25em}
+.frac span:last-child{padding:0 .25em}
+.bar{display:flex;width:100%;max-width:340px;height:26px;border:2px solid var(--fg);border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.bar i{flex:1;border-right:2px solid var(--fg)}
+.bar i:last-child{border-right:none}
+.bar i.on{background:var(--accent)}
+.talk{display:flex;gap:12px;align-items:flex-start}
+.talk .alien{flex:none;width:64px;height:64px}
+.talk .alien.pop{animation:pop .45s}
+.talk .fb{flex:1;min-width:0;position:relative}
+.fb{border-radius:14px;padding:12px 16px;border:2px solid var(--line);background:var(--bg)}
+.fb strong{font-family:var(--display);font-size:1.15rem;display:block;margin-bottom:2px}
+.fb.good{border-color:var(--good)}.fb.good strong{color:var(--good)}
+.fb.hint{border-color:var(--accent)}.fb.hint strong{color:var(--accent)}
+.fb.miss{border-color:var(--bad)}.fb.miss strong{color:var(--bad)}
+.fb b{color:var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.bigstars{font-size:3rem;letter-spacing:.15em;color:var(--accent);line-height:1}
+.result{text-align:center;align-items:center}
+.result .hero{width:110px;height:110px;animation:pop .6s}
+.review{text-align:left;width:100%;display:flex;flex-direction:column;gap:10px}
+.review .fb p:first-child{font-weight:800;margin-bottom:4px}
+@keyframes bob{from{transform:translateY(-4px) rotate(-2deg)}to{transform:translateY(4px) rotate(2deg)}}
+@keyframes boom{40%{transform:scale(1.35);filter:brightness(2.2)}100%{transform:scale(.1) rotate(40deg);opacity:0}}
+@keyframes pop{0%{transform:scale(.8)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes flick{from{transform:scaleX(.7)}to{transform:scaleX(1.15)}}
+@media (prefers-reduced-motion:reduce){.rocket,.planet{transition:none}.rock,.rocket .flame,.combo.hot,.talk .alien.pop,.result .hero{animation:none}.rock.boom{animation:none;opacity:.25}}
+</style>
+</head>
+<body>
+
+<canvas id="sky" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <h1>Star <span>Math</span> Voyage</h1>
+    <div class="stats">
+      <span class="rank" id="rank"></span>
+      <span class="dust" id="dust" title="Stardust collected"></span>
+      <button class="ghost" id="snd" type="button"></button>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[rnd(0,a.length-1)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
+const f=n=>n.toLocaleString('en-US');
+const frac=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+const bar=(a,b)=>`<span class="bar" role="img" aria-label="${a} of ${b} equal parts shaded">${Array.from({length:b},(_,i)=>`<i class="${i<a?'on':''}"></i>`).join('')}</span>`;
+const QN=8, PASS=6, DMAX=5;
+
+/* ---------- question generators: every one takes a challenge level d from 1 (gentle) to 5 (tough) ---------- */
+function genAddSub(k,d){
+  const [lo,hi]=[[20,99],[100,899],[1000,4999],[1000,9999],[10000,99999]][d-1];
+  const u=[10,100,100,100,1000][d-1], ru=n=>Math.round(n/u)*u, P10=[1,10,100,1000,10000];
+  if(k%2===0){
+    const a=rnd(lo,hi), b=rnd(lo,hi), lines=[], sums=[];
+    for(const p of P10){
+      const pa=Math.floor(a/p)%10*p, pb=Math.floor(b/p)%10*p;
+      if(pa||pb){lines.push(`${f(pa)} + ${f(pb)} = ${f(pa+pb)}`);sums.push(pa+pb)}
+    }
+    return {kind:'input',math:1,wide:d>3,html:`${f(a)} + ${f(b)} = ?`,answer:a+b,
+      hint:`Estimate first: about ${f(ru(a))} + ${f(ru(b))} = ${f(ru(a)+ru(b))}. Your answer should be close to that. Line up the digits and start with the ones.`,
+      explain:`Add each place value:<br>${lines.join('<br>')}<br>Put them together: ${sums.map(f).join(' + ')} = <b>${f(a+b)}</b>`};
+  }
+  const a=rnd(Math.round(lo+(hi-lo)*.3),hi), b=rnd(lo,a-Math.max(10,lo/2)), lines=[]; let cur=a;
+  for(const p of P10.slice().reverse()){
+    const pb=Math.floor(b/p)%10*p;
+    if(pb){lines.push(`${f(cur)} − ${f(pb)} = ${f(cur-pb)}`);cur-=pb}
+  }
+  return {kind:'input',math:1,wide:d>3,html:`${f(a)} − ${f(b)} = ?`,answer:a-b,
+    hint:`Estimate first: about ${f(ru(a))} − ${f(ru(b))} = ${f(ru(a)-ru(b))}. Your answer should be close to that. Line up the digits and start with the ones.`,
+    explain:`Take away ${f(b)} one place value at a time:<br>${lines.join('<br>')}<br>The answer is <b>${f(a-b)}</b>. Check by adding: ${f(a-b)} + ${f(b)} = ${f(a)}.`};
+}
+
+function genMult(k,d){
+  if(d===5){
+    const T=rnd(1,2)*10, o=rnd(2,9), a=T+o, b=rnd(3,9);
+    return {kind:'input',math:1,html:`${a} × ${b} = ?`,answer:a*b,
+      hint:`Break ${a} into ${T} and ${o}. Multiply each part by ${b}, then add.`,
+      explain:`${T} × ${b} = ${T*b} and ${o} × ${b} = ${o*b}. Together: ${T*b} + ${o*b} = <b>${a*b}</b>.`};
+  }
+  const [a1,a2,b1,b2]=[[2,5,2,10],[2,9,3,10],[3,12,3,12],[6,12,6,12]][d-1];
+  const a=rnd(a1,a2), b=rnd(b1,b2), p=a*b;
+  if(k%3===2){
+    const list=Array.from({length:b},(_,i)=>a*(i+1));
+    return {kind:'input',math:1,html:`${a} × ? = ${p}`,answer:b,
+      hint:`Count by ${a}s and keep track of how many jumps it takes to reach ${p}.`,
+      explain:`Count by ${a}s: ${list.join(', ')}. That is ${b} jumps, so ${a} × <b>${b}</b> = ${p}.`};
+  }
+  const wrong=shuffle([...new Set([a*(b+1),a*(b-1),(a+1)*b,(a-1)*b,p+10,p-2,p+1])].filter(x=>x>0&&x!==p)).slice(0,3);
+  return {kind:'choice',math:1,html:`${a} × ${b} = ?`,answer:String(p),
+    options:shuffle([p,...wrong]).map(x=>({label:String(x),value:String(x)})),
+    hint:`Use a fact you know: ${a} × ${b-1} = ${a*(b-1)}. Now add one more group of ${a}.`,
+    explain:`${a} × ${b-1} = ${a*(b-1)}, and one more group of ${a} makes ${a*(b-1)} + ${a} = <b>${p}</b>.`};
+}
+
+function genDiv(k,d){
+  const dv=d===1?rnd(2,5):rnd(2,9), [q1,q2]=[[2,9],[2,10],[6,15],[11,30],[25,99]][d-1], q=rnd(q1,q2);
+  const exact=k%3===2||(d===1&&k%2===1), r=exact?0:rnd(1,dv-1), n=dv*q+r;
+  return {kind:'qr',math:1,html:`${n} ÷ ${dv} = ?`,answer:[q,r],
+    hint:`Which multiple of ${dv} is closest to ${n} without going over? Try ${dv} × ${q-1} = ${dv*(q-1)}, ${dv} × ${q} = ${dv*q}, and ${dv} × ${q+1} = ${dv*(q+1)}.`,
+    explain:`${dv} × ${q} = ${dv*q}, which fits inside ${n}. Left over: ${n} − ${dv*q} = ${r}. So ${n} ÷ ${dv} = <b>${q}</b> remainder <b>${r}</b>.`};
+}
+
+function genFrac(k,d){
+  const type=['cmp','eq','add','cmp','eq','sub'][k];
+  if(type==='cmp'){
+    let a,b,c,dn;
+    if(d>=3&&Math.random()<.2){
+      b=pick([2,3,4,5,6]); a=rnd(1,b-1);
+      const m=pick([2,3].filter(m=>b*m<=12)); c=a*m; dn=b*m;
+      if(Math.random()<.5)[a,b,c,dn]=[c,dn,a,b];
+    }else if(d<=2){
+      if(Math.random()<.5){b=dn=pick([3,4,5,6,8]);do{a=rnd(1,b-1);c=rnd(1,b-1)}while(a===c)}
+      else{a=c=1;do{b=pick([2,3,4,5,6,8]);dn=pick([2,3,4,5,6,8])}while(b===dn)}
+    }else{
+      const D=d===3?[2,3,4,6,8]:[2,3,4,5,6,8,10,12];
+      do{b=pick(D);dn=pick(D);a=rnd(1,b-1);c=rnd(1,dn-1)}while(a*dn===c*b);
+    }
+    const ans=a*dn>c*b?'A':a*dn<c*b?'B':'E';
+    const end=ans==='E'?`They are <b>equal</b>.`:`So ${ans==='A'?frac(a,b):frac(c,dn)} is <b>bigger</b>.`;
+    const how=b===dn?`Both have ${b} equal parts, so compare the tops: ${a} and ${c}.`
+      :`Give both the same bottom number, ${b*dn}: ${frac(a,b)} = ${frac(a*dn,b*dn)} and ${frac(c,dn)} = ${frac(c*b,b*dn)}.`;
+    return {kind:'choice',html:`Which is bigger: ${frac(a,b)} or ${frac(c,dn)}?`,answer:ans,
+      options:[{label:frac(a,b),value:'A'},{label:frac(c,dn),value:'B'},{label:'They are equal',value:'E',sm:1}],
+      hint:`Picture each fraction as a bar of the same length. Which has more shaded?<br>${frac(a,b)}${bar(a,b)}${frac(c,dn)}${bar(c,dn)}`,
+      explain:`${how} ${end}`};
+  }
+  if(type==='eq'){
+    const b=pick(d>=4?[3,4,5,6,8]:[2,3,4,5]), a=rnd(1,b-1), m=rnd(2,[2,2,3,5,6][d-1]);
+    return {kind:'input',html:`${frac(a,b)} = ${frac('?',b*m)}`,math:1,answer:a*m,
+      hint:`What was ${b} multiplied by to get ${b*m}? Multiply the top by the same number.`,
+      explain:`${b} × ${m} = ${b*m}, so multiply the top by ${m} too: ${a} × ${m} = <b>${a*m}</b>. That gives ${frac(a,b)} = ${frac(a*m,b*m)}.`};
+  }
+  const dn=pick(d<=2?[4,5,6]:[5,6,8,10,12]);
+  if(type==='sub'){
+    const a=rnd(3,dn-1), b=rnd(1,a-1);
+    return {kind:'input',math:1,html:`${frac(a,dn)} − ${frac(b,dn)} = ${frac('?',dn)}`,answer:a-b,
+      hint:`The pieces are all the same size, so the bottom number stays ${dn}. Just subtract the tops.`,
+      explain:`The bottom stays ${dn} because the piece size does not change. Tops: ${a} − ${b} = <b>${a-b}</b>. The answer is ${frac(a-b,dn)}.`};
+  }
+  let a,b;
+  if(d>=4){a=rnd(2,dn-1);b=rnd(2,dn-1)}else{a=rnd(1,dn-2);b=rnd(1,dn-1-a)}
+  const over=a+b>dn?` That is more than one whole, and that is fine.`:'';
+  return {kind:'input',math:1,html:`${frac(a,dn)} + ${frac(b,dn)} = ${frac('?',dn)}`,answer:a+b,
+    hint:`The pieces are all the same size, so the bottom number stays ${dn}. Just add the tops.`,
+    explain:`The bottom stays ${dn} because the piece size does not change. Tops: ${a} + ${b} = <b>${a+b}</b>. The answer is ${frac(a+b,dn)}.${over}`};
+}
+
+function genWord(t,d){
+  const name=pick(['Zara','Milo','Nia','Captain Ray']);
+  switch(t){
+    case 0:{
+      const T=rnd(1,1+d)*10, o=rnd(1,9), a=T+o, b=rnd(3,Math.min(9,4+d));
+      return {kind:'input',unit:'moon rocks',answer:a*b,
+        html:`A cargo ship carries ${a} crates. Each crate holds ${b} moon rocks. How many moon rocks is that in all?`,
+        hint:`Every crate holds the same amount, so multiply ${a} × ${b}. Split ${a} into ${T} and ${o} to make it easier.`,
+        explain:`${T} × ${b} = ${T*b} and ${o} × ${b} = ${o*b}. Together: ${T*b} + ${o*b} = <b>${a*b}</b> moon rocks.`};
+    }
+    case 1:{
+      const n=rnd(3,9), q=rnd(4+d,8+2*d), tot=n*q;
+      return {kind:'input',unit:'food packs',answer:q,
+        html:`${n} astronauts share ${tot} food packs equally. How many food packs does each astronaut get?`,
+        hint:`Sharing equally means dividing: ${tot} ÷ ${n}. Think: ${n} times what number makes ${tot}?`,
+        explain:`${n} × ${q} = ${tot}, so ${tot} ÷ ${n} = <b>${q}</b> food packs each.`};
+    }
+    case 2:{
+      const a=rnd(100*d+100,300*d+300), b=rnd(50,a-50), c=rnd(40,100*d+100);
+      return {kind:'input',unit:'tanks',answer:a-b+c,
+        html:`The space station had ${f(a)} oxygen tanks. The crew used ${f(b)} of them. Then a supply ship brought ${c} more. How many tanks does the station have now?`,
+        hint:`This takes two steps. First subtract the tanks that were used. Then add the new ones.`,
+        explain:`Step 1: ${f(a)} − ${f(b)} = ${f(a-b)}. Step 2: ${f(a-b)} + ${c} = <b>${f(a-b+c)}</b> tanks.`};
+    }
+    case 3:{
+      const a=rnd(4+d,8+d), b=rnd(3,Math.min(9,4+d)), c=rnd(5,a*b-5);
+      return {kind:'input',unit:'gems',answer:a*b-c,
+        html:`${name} collects ${a} star gems every day for ${b} days. Then ${name} gives ${c} gems to a friend. How many gems are left?`,
+        hint:`This takes two steps. First find how many gems were collected: ${a} × ${b}. Then subtract the gems given away.`,
+        explain:`Step 1: ${a} × ${b} = ${a*b}. Step 2: ${a*b} − ${c} = <b>${a*b-c}</b> gems.`};
+    }
+    case 4:{
+      const place=d===1?10:d===2?pick([10,100]):d===5?pick([1000,10000]):pick([10,100,1000]);
+      const word={10:'ten',100:'hundred',1000:'thousand',10000:'ten thousand'}[place];
+      const [n1,n2]=d===1?[110,989]:d===5?[11000,98999]:[1100,9899];
+      let n; do{n=rnd(n1,n2)}while(n%place===0);
+      const lo=Math.floor(n/place)*place, hi=lo+place, ans=n-lo>=place/2?hi:lo;
+      const tie=n-lo===place/2?` It is exactly halfway, and halfway rounds up.`:'';
+      return {kind:'input',wide:1,step:place,answer:ans,
+        html:`Round ${f(n)} to the nearest ${word}.`,
+        hint:`${f(n)} sits between ${f(lo)} and ${f(hi)}. Which one is it closer to?`,
+        explain:`${f(n)} is ${f(n-lo)} away from ${f(lo)} and ${f(hi-n)} away from ${f(hi)}.${tie} It rounds to <b>${f(ans)}</b>.`};
+    }
+    case 5:{
+      const L=d<=2?3:d===5?5:4, ds=shuffle([1,2,3,4,5,6,7,8,9]).slice(0,L), n=+ds.join(''), pos=rnd(0,L-1), dg=ds[pos];
+      const val=dg*10**(L-1-pos), pname=['ones','tens','hundreds','thousands','ten thousands'][L-1-pos];
+      return {kind:'choice',answer:String(val),
+        html:`What is the value of the digit ${dg} in ${f(n)}?`,
+        options:shuffle(Array.from({length:L},(_,e)=>dg*10**e)).map(v=>({label:f(v),value:String(v),sm:L>4})),
+        hint:`Name the place the ${dg} is in. Is it ones, tens, hundreds, or thousands?`,
+        explain:`The ${dg} is in the ${pname} place, so it is worth <b>${f(val)}</b>.`};
+    }
+    default:{
+      const s=rnd(4,9), q=rnd(2+d,6+2*d), r=rnd(1,s-1), n=s*q+r;
+      return {kind:'input',unit:'shuttles',answer:q+1,
+        html:`A shuttle has ${s} seats. How many shuttles are needed to carry all ${n} astronauts?`,
+        hint:`Divide ${n} ÷ ${s}. If some astronauts are left over, they still need a shuttle.`,
+        explain:`${s} × ${q} = ${s*q}, so ${q} shuttles carry ${s*q} astronauts. The ${r} left over need one more: ${q} + 1 = <b>${q+1}</b> shuttles.`};
+    }
+  }
+}
+
+/* Asteroid Blast bonus round: tap every asteroid that fits the rule */
+function genBlast(lv,d){
+  const N=d<=2?6:9, nOK=rnd(2,N===6?3:4), ok=new Map(), no=new Map();
+  let html, mk, tip;
+  if(lv===0){
+    const T=d<=2?rnd(3,9)*10:rnd(3,9)*100, u=d<=2?5:d===3?50:25;
+    html=`Blast every asteroid that equals ${T}.`; tip=`Work out each asteroid one at a time.`;
+    mk=good=>{
+      const t=good?T:T+pick([-2,-1,1,2])*u;
+      if(Math.random()<.5){const a=rnd(1,t/u-1)*u;return [`${a} + ${t-a}`,`${a} + ${t-a} = ${t}`]}
+      const b=rnd(1,6)*u;return [`${t+b} − ${b}`,`${t+b} − ${b} = ${t}`];
+    };
+  }else if(lv===1){
+    const m=pick([[2,5,10],[3,4,5],[6,7,8,9],[7,8,9,11,12],[11,12,15]][d-1]);
+    html=`Blast every multiple of ${m}.`; tip=`Count by ${m}s and see which asteroids you land on.`;
+    mk=good=>{const q=rnd(2,12);return good?[String(m*q),`${m} × ${q} = ${m*q}`]:[String(m*q+rnd(1,m-1)),'']};
+  }else if(lv===2){
+    const m=d<=2?rnd(2,5):rnd(3,9), r=d<=2?0:rnd(1,m-1), top=d<=3?10:20;
+    html=r?`Blast every number that leaves a remainder of ${r} when you divide it by ${m}.`:`Blast every number you can divide by ${m} with nothing left over.`;
+    tip=r?`Find the closest multiple of ${m} below each number, then see what is left over.`:`Count by ${m}s and see which asteroids you land on.`;
+    mk=good=>{
+      const q=rnd(2,top);
+      if(good)return [String(m*q+r),`${m*q+r} ÷ ${m} = ${q}${r?` remainder ${r}`:''}`];
+      let r2;do{r2=rnd(0,m-1)}while(r2===r);return [String(m*q+r2),''];
+    };
+  }else if(lv===3){
+    const [a,b]=pick(d<=2?[[1,2]]:d===3?[[1,2],[1,3],[1,4]]:[[2,3],[3,4],[2,5],[3,5]]);
+    html=`Blast every fraction equal to ${frac(a,b)}.`; tip=`An equal fraction has its top and bottom multiplied by the same number.`;
+    mk=good=>{
+      const m=rnd(2,d<=2?5:6);
+      if(good)return [frac(a*m,b*m),`${frac(a*m,b*m)} is ${frac(a,b)} with top and bottom times ${m}`];
+      let n=a*m+pick([-1,1]), dn=b*m+pick([0,0,1]); if(n<1)n=a*m+1; if(n*b===a*dn)dn++;
+      return [frac(n,dn),''];
+    };
+  }else{
+    const u=d<=2?10:d<=4?100:1000, T=rnd(11,98)*u, w={10:'ten',100:'hundred',1000:'thousand'}[u];
+    html=`Blast every number that rounds to ${f(T)} when you round to the nearest ${w}.`;
+    tip=`Numbers from ${f(T-u/2)} up to ${f(T+u/2-1)} round to ${f(T)}.`;
+    mk=good=>{
+      if(good){let o;do{o=rnd(-u/2,u/2-1)}while(o===0);return [f(T+o),`${f(T+o)} rounds to ${f(T)}`]}
+      const o=Math.random()<.5?-rnd(u/2+1,u+u/2-1):rnd(u/2,u+u/2-1);return [f(T+o),''];
+    };
+  }
+  let guard=0;
+  while(ok.size<nOK&&guard++<300){const [l,n]=mk(true);ok.set(l,n)}
+  while(no.size<N-nOK&&guard++<900){const [l]=mk(false);if(!ok.has(l))no.set(l,'')}
+  const items=shuffle([...[...ok].map(([label,note])=>({label,ok:1,note})),...[...no].map(([label])=>({label,ok:0}))]);
+  return {kind:'blast',html,items,n:ok.size,tip,
+    explain:`These ${ok.size} were the ones to blast:<br>${[...ok.values()].join('<br>')}`};
+}
+
+const LEVELS=[
+  {name:'Sumara',skill:'Add and subtract big numbers',gen:genAddSub,alien:'Zib'},
+  {name:'Multiplon',skill:'Multiplication facts and beyond',gen:genMult,alien:'Tok'},
+  {name:'Dividus',skill:'Division with remainders',gen:genDiv,alien:'Mopsy'},
+  {name:'Fractalia',skill:'Compare, match and add fractions',gen:genFrac,alien:'Quill'},
+  {name:'Enigma',skill:'Word problems and rounding',gen:genWord,alien:'Orbo'},
+];
+const HUES=['#ff7e6b','#38d1c8','#b792ff','#9be564','#ffb14a'];
+const RANKS=[[0,'Space Cadet'],[150,'Pilot'],[400,'Captain'],[800,'Commander'],[1500,'Galaxy Legend']];
+
+function makePlan(i){
+  const s=i===4?shuffle([0,1,2,3,4,5,6]).slice(0,6):[0,1,2,3,4,5];
+  return [s[0],s[1],s[2],'B',s[3],s[4],s[5],'B'];
+}
+function makeQ(lv,k,d,seen){
+  let q,t=0;
+  do{q=k==='B'?genBlast(lv,d):LEVELS[lv].gen(k,d)}while(seen.includes(q.html)&&++t<20);
+  if(q.kind!=='blast')q.arena=arenaOptions(q);
+  return q;
+}
+/* Turn any question into answer asteroids: the right answer plus believable mistakes */
+function arenaOptions(q){
+  if(q.kind==='choice'){
+    let o=q.options;
+    if(o.length>4)o=shuffle([o.find(x=>x.value===q.answer),...shuffle(o.filter(x=>x.value!==q.answer)).slice(0,3)]);
+    return {opts:o,ans:q.answer};
+  }
+  if(q.kind==='qr'){
+    const [a,r]=q.answer, key=p=>p[0]+'R'+p[1], seen=new Set([key(q.answer)]), out=[[a,r]];
+    for(const p of shuffle([[a+1,r],[a-1,r],[a,r+1],[a,r-1],[a+1,0],[a-1,r+1],[a+2,r]])){
+      if(p[0]>=1&&p[1]>=0&&!seen.has(key(p))&&out.length<4){seen.add(key(p));out.push(p)}
+    }
+    return {opts:shuffle(out).map(p=>({label:`${p[0]} R${p[1]}`,value:key(p)})),ans:key(q.answer)};
+  }
+  const A=q.answer, s=q.step;
+  const cand=s?[A+s,A-s,A+2*s,A-2*s]:[A+1,A-1,A+2,A-2,A+10,A-10,...(A>=200?[A+100,A-100,A+20]:[A+3])];
+  const wrong=shuffle([...new Set(cand)].filter(x=>x>0&&x!==A)).slice(0,3);
+  return {opts:shuffle([A,...wrong]).map(x=>({label:f(x),value:String(x)})),ans:String(A)};
+}
+
+/* ---------- saved progress (this device only) ---------- */
+function load(){
+  let p=null;
+  try{p=JSON.parse(localStorage.getItem('smv1'))}catch(e){}
+  if(!p||!Array.isArray(p.stars)||p.stars.length!==5)p={stars:[0,0,0,0,0],dust:0,mute:false};
+  if(!Array.isArray(p.diff)||p.diff.length!==5)p.diff=[2,2,2,2,2];
+  return p;
+}
+function save(){try{localStorage.setItem('smv1',JSON.stringify(P))}catch(e){}}
+let P=load(), G=null;
+const unlocked=i=>i===0||P.stars[i-1]>0;
+const starRow=n=>'★★★'.split('').map((s,i)=>i<n?s:`<span class="off">${s}</span>`).join('');
+
+/* ---------- alien guides ---------- */
+function alien(i,mood){
+  const c=HUES[i], eyes=[[[32,31,9]],[[23,31,7],[41,31,7]],[[17,32,6],[32,27,6.5],[47,32,6]]][i%3];
+  const mouth={happy:'<path d="M23 45 Q32 54 41 45" fill="none" stroke="#1b1440" stroke-width="3" stroke-linecap="round"/>',
+    wow:'<ellipse cx="32" cy="48" rx="5" ry="6" fill="#1b1440"/>',
+    think:'<path d="M25 48 H39" fill="none" stroke="#1b1440" stroke-width="3" stroke-linecap="round"/>'}[mood]||'';
+  return `<svg viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="${LEVELS[i].alien} the alien">
+    <path d="M22 16 L17 5 M42 16 L47 5" stroke="${c}" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <circle cx="17" cy="5" r="3.5" fill="#ffc93c"/><circle cx="47" cy="5" r="3.5" fill="#ffc93c"/>
+    <ellipse cx="32" cy="37" rx="25" ry="23" fill="${c}"/>
+    <ellipse cx="32" cy="50" rx="14" ry="8" fill="#ffffff" fill-opacity=".22"/>
+    ${eyes.map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#ffffff"/><circle cx="${x+(mood==='think'?1.5:0)}" cy="${y+(mood==='think'?-1.5:1)}" r="${r*.45}" fill="#1b1440"/>`).join('')}
+    ${mouth}</svg>`;
+}
+
+/* ---------- sound ---------- */
+let AC;
+function tone(fr,t0,d,type,to){
+  if(P.mute)return;
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(), g=AC.createGain(), s=AC.currentTime+t0;
+    o.type=type||'triangle'; o.frequency.setValueAtTime(fr,s);
+    if(to)o.frequency.exponentialRampToValueAtTime(to,s+d);
+    g.gain.setValueAtTime(.0001,s); g.gain.exponentialRampToValueAtTime(.14,s+.02); g.gain.exponentialRampToValueAtTime(.0001,s+d);
+    o.connect(g); g.connect(AC.destination); o.start(s); o.stop(s+d+.03);
+  }catch(e){}
+}
+const sndGood=()=>{tone(523,0,.15);tone(784,.12,.25)};
+const sndBad=()=>tone(196,0,.3);
+const sndTap=()=>tone(440,0,.08);
+const sndLaser=()=>{tone(1400,0,.25,'sawtooth',180);tone(90,.2,.35,'square',40)};
+const sndUp=()=>[660,880,1175].forEach((n,i)=>tone(n,.3+i*.09,.14));
+const sndWin=()=>[523,659,784,1047,1319].forEach((n,i)=>tone(n,i*.13,.3));
+
+/* ---------- star burst ---------- */
+let fxRun=0;
+function burst(count){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const c=$('#fx'), dpr=Math.min(devicePixelRatio||1,2), w=innerWidth, h=innerHeight;
+  c.width=w*dpr; c.height=h*dpr;
+  const x=c.getContext('2d'); x.scale(dpr,dpr);
+  const card=$('.qcard'), box=card?card.getBoundingClientRect():{left:w/2,width:0,top:h/3};
+  const ox=box.left+box.width/2, oy=Math.max(60,box.top+60), cols=['#ffc93c','#62e6aa','#ff7e6b','#b792ff','#38d1c8','#f3f2ff'];
+  const ps=Array.from({length:count},()=>{const a=Math.random()*6.283, v=3+Math.random()*8;
+    return {x:ox,y:oy,vx:Math.cos(a)*v,vy:Math.sin(a)*v-4,r:3+Math.random()*5,c:pick(cols),s:Math.random()*6.283}});
+  const run=++fxRun, t0=performance.now();
+  (function step(now){
+    if(run!==fxRun)return;
+    const t=(now-t0)/1300; x.clearRect(0,0,w,h);
+    if(t>=1)return;
+    for(const p of ps){
+      p.x+=p.vx; p.y+=p.vy; p.vy+=.28; p.s+=.2;
+      x.globalAlpha=1-t; x.fillStyle=p.c; x.beginPath();
+      for(let k=0;k<10;k++){const rr=k%2?p.r*.45:p.r, an=p.s+k*Math.PI/5; x.lineTo(p.x+Math.cos(an)*rr,p.y+Math.sin(an)*rr)}
+      x.fill();
+    }
+    requestAnimationFrame(step);
+  })(t0);
+}
+
+function chrome(){
+  const dust=P.dust+(G?G.dust:0);
+  $('#rank').textContent=RANKS.filter(r=>dust>=r[0]).pop()[1];
+  $('#dust').textContent=`✦ ${f(dust)} stardust`;
+  $('#snd').textContent=P.mute?'Sound off':'Sound on';
+  $('#snd').setAttribute('aria-pressed',String(!P.mute));
+}
+$('#snd').addEventListener('click',()=>{P.mute=!P.mute;save();chrome();if(!P.mute)tone(660,0,.15)});
+
+/* ---------- map ---------- */
+function renderMap(){
+  G=null; chrome();
+  const total=P.stars.reduce((a,b)=>a+b,0), done=P.stars.every(s=>s>0);
+  $('#view').innerHTML=`
+    <div class="wrap">
+      <p class="lead">A math storm scattered five alien friends across the galaxy. Fly to each planet and get ${PASS} of ${QN} questions right to rescue the alien who lives there. The questions get harder when you are on a roll and easier when you need a hand. There is no timer.</p>
+      ${done?`<div class="champ"><h2>Galaxy Champion!</h2><p>You rescued the whole crew. Replay any planet to collect all 15 stars and reach Galaxy Legend.</p></div>`:''}
+      <ol class="map">${LEVELS.map((L,i)=>`
+        <li><button type="button" class="pbtn p${i+1}" data-l="${i}" ${unlocked(i)?'':'disabled'}>
+          <span class="planet"></span>
+          <span class="ptext">
+            <span class="pname">${i+1}. ${L.name}</span>
+            <span class="pskill">${L.skill}</span>
+            ${unlocked(i)?`<span class="stars" aria-label="${P.stars[i]} of 3 stars">${starRow(P.stars[i])}</span>`
+              :`<span class="lock">Locked. Rescue ${LEVELS[i-1].alien} on ${LEVELS[i-1].name} first.</span>`}
+          </span>
+        </button></li>`).join('')}
+      </ol>
+      <div class="crew"><h3>Your crew</h3>
+        <ul class="crewrow">${LEVELS.map((L,i)=>`<li class="${P.stars[i]?'':'lost'}">${alien(i,P.stars[i]?'happy':'')}<span>${P.stars[i]?L.alien:'Lost'}</span></li>`).join('')}</ul>
+      </div>
+      <div class="foot"><span>${total} of 15 stars collected</span><button type="button" class="ghost" id="reset">Reset progress</button></div>
+    </div>`;
+  document.querySelectorAll('.pbtn').forEach(b=>b.addEventListener('click',()=>startLevel(+b.dataset.l)));
+  let armed=false;
+  $('#reset').addEventListener('click',e=>{
+    if(!armed){armed=true;e.target.textContent='Tap again to erase all stars';setTimeout(()=>{armed=false;if(e.target.isConnected)e.target.textContent='Reset progress'},4000);return}
+    P={stars:[0,0,0,0,0],dust:0,mute:P.mute,diff:[2,2,2,2,2]};save();renderMap();
+  });
+}
+
+function startLevel(i){
+  G={lvl:i,plan:makePlan(i),i:0,tries:0,res:[],streak:0,best:0,dust:0,d:P.diff[i],top:P.diff[i],seen:[],missed:[],shift:''};
+  G.q=makeQ(i,G.plan[0],G.d,G.seen); G.seen.push(G.q.html);
+  renderPlay();
+}
+
+/* ---------- play ---------- */
+const ROCKET=`<svg viewBox="0 0 48 32" width="48" height="32" aria-hidden="true">
+  <path class="flame" d="M0 16 L12 10 L12 22 Z" fill="#ffc93c"/>
+  <path d="M12 6 L20 10 L12 12 Z M12 26 L20 22 L12 20 Z" fill="#ff7e6b"/>
+  <path d="M10 10 H30 Q44 12 46 16 Q44 20 30 22 H10 Z" fill="#f3f2ff"/>
+  <circle cx="31" cy="16" r="3.5" fill="#38d1c8"/></svg>`;
+
+/* Flight arena: answer asteroids drift down their lanes; the rocket flies under one and fires */
+let lane=0, busy=false;
+function arenaHTML(q){
+  const o=q.arena.opts, n=o.length, W=100/n, T=17-G.d*1.6;
+  return `<p class="how">Fly under the asteroid with the right answer and blast it. Tap an asteroid, or steer with ← → and fire with Space.${q.kind==='qr'?' R means remainder.':''}</p>
+    <div class="arena" id="arena" style="--w:${W}%">
+      ${o.map((op,j)=>`<div class="faller" style="left:${j*W}%;animation-duration:${T.toFixed(1)}s;animation-delay:-${(T*((j*.37+.15)%1)).toFixed(2)}s"><button type="button" class="rock${op.sm||(op.label.length>6&&!op.label.includes('<'))?' long':''}" data-v="${op.value}" data-j="${j}">${op.label}</button></div>`).join('')}
+      <div class="beam" id="beam" hidden></div>
+      <div class="ship" id="ship">${ROCKET}</div>
+    </div>`;
+}
+function moveShip(n){const s=$('#ship');if(s)s.style.left=`calc(${100/n}% * ${lane+.5} - 24px)`}
+function arenaWire(q){
+  const n=q.arena.opts.length; lane=Math.floor((n-1)/2); busy=false; moveShip(n);
+  document.querySelectorAll('.faller .rock').forEach(b=>b.addEventListener('click',()=>shoot(+b.dataset.j)));
+}
+function shoot(j){
+  const q=G&&G.q, ar=$('#arena');
+  if(!q||!q.arena||!ar||busy||G.res.length>G.i)return;
+  const b=ar.querySelector(`.rock[data-j="${j}"]`);
+  if(!b||b.disabled)return;
+  const n=q.arena.opts.length; lane=j; moveShip(n); busy=true;
+  setTimeout(()=>{
+    busy=false; if(!b.isConnected)return;
+    b.parentElement.style.animationPlayState='paused';
+    const A=ar.getBoundingClientRect(), R=b.getBoundingClientRect(), beam=$('#beam');
+    const top=Math.max(0,R.top+R.height/2-A.top);
+    beam.style.left=`calc(${100/n}% * ${j+.5} - 3px)`; beam.style.top=top+'px'; beam.style.height=Math.max(0,A.height-52-top)+'px';
+    beam.hidden=false; setTimeout(()=>{beam.hidden=true},220);
+    const ok=b.dataset.v===q.arena.ans;
+    sndLaser();
+    if(ok)b.classList.add('boom'); else{b.classList.add('dud');b.disabled=true}
+    judge(ok);
+  },240);
+}
+document.addEventListener('keydown',e=>{
+  if(!$('#arena')||!G||!G.q.arena||G.res.length>G.i)return;
+  const n=G.q.arena.opts.length;
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'){lane=Math.max(0,Math.min(n-1,lane+(e.key==='ArrowLeft'?-1:1)));moveShip(n);e.preventDefault()}
+  else if(e.key==='ArrowUp'||(e.key===' '&&!(e.target instanceof HTMLButtonElement))){shoot(lane);e.preventDefault()}
+});
+
+function talk(mood,cls,title,body,pop){
+  $('#fb').innerHTML=`<div class="talk"><div class="alien${pop?' pop':''}">${alien(G.lvl,mood)}</div>
+    <div class="fb ${cls}">${title?`<strong>${title}</strong>`:''}<div>${body}</div></div></div>`;
+}
+
+function renderPlay(){
+  chrome();
+  const q=G.q, L=LEVELS[G.lvl];
+  let area;
+  if(q.kind!=='blast'){
+    area=arenaHTML(q);
+  }else{
+    area=`<div class="rocks">${q.items.map((it,j)=>`<button type="button" class="rock${it.label.length>7&&!it.label.includes('<')?' long':''}" data-j="${j}" aria-pressed="false" style="animation-delay:${-(j*.41).toFixed(2)}s">${it.label}</button>`).join('')}</div>
+      <div class="actions" id="fireRow"><button type="button" class="btn" id="fire">Fire!</button></div>`;
+  }
+  $('#view').innerHTML=`
+    <div class="wrap">
+      <div class="playhead">
+        <button type="button" class="ghost" id="quit">← Map</button>
+        <span class="lvl">Planet ${G.lvl+1}: ${L.name}</span>
+        <span class="count">Question ${G.i+1} of ${QN}</span>
+      </div>
+      <div class="track p${G.lvl+1}"><div class="rocket" id="rocket" style="--t:${G.res.length/QN}">${ROCKET}</div><span class="planet"></span></div>
+      <ol class="dots" id="dots" aria-label="Progress"></ol>
+      <div class="meters">
+        <span>Challenge level<span class="power" id="power" role="img"></span></span>
+        <span class="combo" id="combo"></span>
+      </div>
+      <div class="qcard">
+        ${q.kind==='blast'?'<span class="tag">Asteroid Blast · double stardust</span>':''}
+        <p class="q${q.math?' math':''}">${q.html}</p>
+        ${area}
+        <div id="fb" aria-live="polite"></div>
+        <div class="actions" id="actions"></div>
+      </div>
+    </div>`;
+  meters();
+  $('#quit').addEventListener('click',renderMap);
+
+  if(q.kind!=='blast')arenaWire(q);
+  else{
+    document.querySelectorAll('.rock').forEach(b=>b.addEventListener('click',()=>{
+      b.setAttribute('aria-pressed',String(b.getAttribute('aria-pressed')!=='true'));sndTap();
+    }));
+    $('#fire').addEventListener('click',()=>{
+      const rocks=[...document.querySelectorAll('.rock')], on=rocks.map(b=>b.getAttribute('aria-pressed')==='true');
+      if(!on.some(Boolean)){talk('think','','','Tap the asteroids you want to blast first, then press Fire.');return}
+      const hits=on.filter((s,j)=>s&&q.items[j].ok).length, extra=on.filter((s,j)=>s&&!q.items[j].ok).length;
+      if(hits===q.n&&!extra){sndLaser();rocks.forEach((b,j)=>on[j]&&b.classList.add('boom'));judge(true)}
+      else judge(false,`${hits} of your picks ${hits===1?'is':'are'} right${extra?`, and ${extra} should not be blasted`:''}. There are ${q.n} asteroids to find. ${q.tip}`);
+    });
+  }
+
+  if(G.tries===1)talk('think','hint','Not yet. Here is a hint.',q.hint||q.tip);
+  else{
+    const n=L.alien;
+    const line=G.i===0?`Hi, I'm ${n}! The storm trapped me here. Get ${PASS} right and I can join your crew.`
+      :q.kind==='blast'?`Bonus round! Tap every asteroid that fits the rule, then press Fire.`
+      :G.shift==='up'?`You are on a roll, so I turned the challenge up to level ${G.d}. More stardust for you!`
+      :G.shift==='down'?`That last one was tricky. Here is one that is a little easier.`
+      :pick([`You can do this!`,`Take your time. There is no rush.`,`I believe in you!`,`Nice flying so far.`]);
+    talk('happy','','',line);
+  }
+}
+
+function meters(){
+  $('#dots').innerHTML=Array.from({length:QN},(_,i)=>`<li class="${i<G.res.length?'d'+G.res[i]:i===G.i?'cur':''}"></li>`).join('');
+  $('#rocket').style.setProperty('--t',G.res.length/QN);
+  $('#power').innerHTML=Array.from({length:DMAX},(_,i)=>`<i class="${i<G.d?'on':''}"></i>`).join('');
+  $('#power').setAttribute('aria-label',`${G.d} of ${DMAX}`);
+  const c=$('#combo'); c.textContent=G.streak>=2?`Combo ×${G.streak}`:''; c.classList.toggle('hot',G.streak>=2);
+}
+
+function judge(ok,dynHint){
+  const q=G.q, blast=q.kind==='blast';
+  if(ok){
+    const first=G.tries===0;
+    G.streak=first?G.streak+1:0; G.best=Math.max(G.best,G.streak);
+    const bonus=first&&G.streak>=3?5:0, base=5+5*G.d, gain=((first?base:Math.round(base/2))+bonus)*(blast?2:1);
+    G.dust+=gain; G.res.push(first?2:1);
+    G.shift='';
+    /* adapt: move up fast at the gentle levels, then only after two in a row */
+    if(first&&G.d<DMAX&&(G.d<3||G.streak%2===0)){G.d++;G.shift='up';G.top=Math.max(G.top,G.d)}
+    if(!blast)sndGood(); if(G.shift==='up')sndUp();
+    burst(first?(blast?46:30):14);
+    const cheer=blast?'Kaboom! Direct hit!':pick(['Correct!','You got it!','Nice work!','Right on target!','Stellar!']);
+    finish(first?'wow':'happy','good',cheer,`+${gain} stardust${bonus?`. That is ${G.streak} in a row, so you earned a combo bonus.`:first?'.':'. Good job fixing it.'}`);
+  }else if(G.tries===0){
+    G.tries=1; G.streak=0; sndBad();
+    talk('think','hint','Not yet. Here is a hint.',dynHint||q.hint,true);
+    meters();
+    const a=$('#ans'); if(a){a.focus();a.select()}
+  }else{
+    G.res.push(0); G.missed.push({html:q.html,explain:q.explain}); sndBad();
+    G.shift='';
+    if(G.d>1){G.d--;G.shift='down'}
+    finish('think','miss','Here is how to solve it.',q.explain);
+  }
+}
+
+function finish(mood,cls,title,body){
+  const q=G.q;
+  document.querySelectorAll('.choice').forEach(b=>{b.disabled=true;if(b.dataset.v===q.answer)b.classList.add('right')});
+  document.querySelectorAll('.rocks .rock').forEach((b,j)=>{b.disabled=true;if(q.items[j].ok&&!b.classList.contains('boom'))b.classList.add('right')});
+  document.querySelectorAll('.faller').forEach(fl=>{
+    fl.style.animationPlayState='paused';
+    const b=fl.firstElementChild; b.disabled=true;
+    if(b.dataset.v===q.arena.ans&&!b.classList.contains('boom'))b.classList.add('right');
+  });
+  document.querySelectorAll('#af input,#check,#fire').forEach(el=>el.disabled=true);
+  const fr=$('#fireRow'); if(fr)fr.hidden=true;
+  talk(mood,cls,title,body,true);
+  const last=G.i===QN-1;
+  $('#actions').innerHTML=`<button type="button" class="btn" id="next">${last?'See results':'Next question'}</button>`;
+  $('#next').addEventListener('click',advance);
+  $('#next').focus();
+  meters(); chrome();
+}
+
+function advance(){
+  G.i++; G.tries=0;
+  if(G.i>=QN){renderResult();return}
+  G.q=makeQ(G.lvl,G.plan[G.i],G.d,G.seen); G.seen.push(G.q.html);
+  renderPlay();
+}
+
+/* ---------- results ---------- */
+function renderResult(){
+  const g=G, i=g.lvl, L=LEVELS[i], c=g.res.filter(x=>x>0).length, stars=c>=QN?3:c>=QN-1?2:c>=PASS?1:0;
+  const firstRescue=stars>0&&P.stars[i]===0;
+  P.stars[i]=Math.max(P.stars[i],stars); P.dust+=g.dust; P.diff[i]=g.d; save(); G=null; chrome();
+  const title=!stars?'So close. Try again!':firstRescue?`You rescued ${L.alien}!`:stars===3?'Perfect landing!':`${L.name} explored!`;
+  const msg=stars?`You got ${c} of ${QN} right and collected ${g.dust} stardust.${firstRescue&&i<4?` ${LEVELS[i+1].name} is now unlocked.`:''}`
+    :`You got ${c} of ${QN} right. ${L.alien} needs ${PASS} to break free. The questions change every time and start a little easier, so give it another go.`;
+  $('#view').innerHTML=`
+    <div class="qcard result">
+      <div class="hero">${alien(i,stars?'happy':'think').replace('width="64" height="64"','width="110" height="110"')}</div>
+      <div class="bigstars" aria-label="${stars} of 3 stars">${starRow(stars)}</div>
+      <h2>${title}</h2>
+      <p>${msg}</p>
+      <p class="lead">Top challenge level: ${g.top} of ${DMAX}. Best combo: ${g.best} in a row.</p>
+      <div class="actions">
+        ${stars&&i<4?`<button type="button" class="btn" id="go">Fly to ${LEVELS[i+1].name}</button>`:''}
+        <button type="button" class="btn ${stars&&i<4?'alt':''}" id="again">Play ${L.name} again</button>
+        <button type="button" class="btn alt" id="home">Back to map</button>
+      </div>
+      ${g.missed.length?`<div class="review"><h3>Look at these again</h3>${g.missed.map(q=>`<div class="fb"><p>${q.html}</p><div>${q.explain}</div></div>`).join('')}</div>`:''}
+    </div>`;
+  $('#go')?.addEventListener('click',()=>startLevel(i+1));
+  $('#again').addEventListener('click',()=>startLevel(i));
+  $('#home').addEventListener('click',renderMap);
+  ($('#go')||$('#again')).focus();
+  if(stars){sndWin();burst(70)}
+}
+
+/* ---------- starry sky ---------- */
+function sky(){
+  const c=$('#sky'), dpr=Math.min(window.devicePixelRatio||1,2), w=innerWidth, h=innerHeight;
+  c.width=w*dpr; c.height=h*dpr;
+  const x=c.getContext('2d'); x.scale(dpr,dpr);
+  let s=7; const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  const n=Math.round(w*h/5500);
+  for(let i=0;i<n;i++){
+    x.globalAlpha=.25+r()*.6;
+    x.fillStyle=r()<.15?'#ffc93c':'#f3f2ff';
+    x.beginPath(); x.arc(r()*w,r()*h,.5+r()*1.2,0,6.3); x.fill();
+  }
+}
+sky(); addEventListener('resize',sky);
+
+/* ---------- boot (keeps a game in progress when the page updates) ---------- */
+function start(data){
+  const g=data&&data.G;
+  if(g&&g.q&&Array.isArray(g.plan)&&Array.isArray(g.seen)){
+    G=g;
+    if(G.res.length>G.i)advance(); else renderPlay();
+  }else renderMap();
+}
+try{window.claude?.hot?.snapshot?.(()=>({G}))}catch(e){}
+if(window.claude?.hot?.ready)window.claude.hot.ready(start); else start(window.claude?.hot?.data??{});
+</script>
+</body>
+</html>
