@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="A five-planet math adventure for 4th graders that adapts its difficulty.">
+<meta name="description" content="A math adventure for 4th graders that adapts its difficulty.">
 <title>Star Math Voyage</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap">
 <style>
@@ -45,7 +45,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 .lead{color:var(--muted);max-width:60ch}
 
 /* planets and crew */
-.p1{--p:#ff7e6b}.p2{--p:#38d1c8}.p3{--p:#b792ff}.p4{--p:#9be564}.p5{--p:#ffb14a}
+.p1{--p:#ff7e6b}.p2{--p:#38d1c8}.p3{--p:#b792ff}.p4{--p:#9be564}.p5{--p:#ffb14a}.p6{--p:#ff8fc7}.p7{--p:#7fb2ff}
+.fig{display:block;margin:0 auto 10px;max-width:100%;height:auto}
+.figt{fill:var(--fg);font:600 16px var(--display)}
 .planet{display:block;width:92px;height:92px;border-radius:50%;flex:none;transition:transform .2s;
   background:radial-gradient(circle at 30% 28%,color-mix(in srgb,var(--p) 55%,white),var(--p) 48%,color-mix(in srgb,var(--p) 35%,black));
   box-shadow:0 0 28px color-mix(in srgb,var(--p) 45%,transparent)}
@@ -152,6 +154,31 @@ input.wide{width:9ch}
 .result .hero{width:110px;height:110px;animation:pop .6s}
 .review{text-align:left;width:100%;display:flex;flex-direction:column;gap:10px}
 .review .fb p:first-child{font-weight:800;margin-bottom:4px}
+.beam{background:var(--laser,var(--accent));box-shadow:0 0 12px var(--laser,var(--accent))}
+.tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.tools small{color:var(--muted);font-size:.9rem}
+.badges{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px 10px}
+.badge{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;font-size:.85rem;line-height:1.3;color:var(--muted);opacity:.5}
+.badge.got{opacity:1}
+.badge .medal{grid-row:span 2;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);border:2px solid var(--line);color:var(--line);font-size:1.1rem}
+.badge.got .medal{background:var(--accent);border-color:var(--accent-deep);color:var(--accent-ink)}
+.badge b{color:var(--fg);font-family:var(--display);font-weight:600;font-size:.95rem}
+.savebox summary{cursor:pointer;font-family:var(--display);font-size:1.1rem}
+.saveinner{display:flex;flex-direction:column;gap:10px;margin-top:10px;align-items:flex-start}
+.saveinner p{color:var(--muted);font-size:.95rem}
+.saveinner .code{font-family:ui-monospace,Consolas,monospace;font-size:1.15rem;color:var(--accent);letter-spacing:.06em;overflow-wrap:anywhere;user-select:all}
+.saveinner form{justify-content:flex-start}
+.codein{width:min(100%,23ch);font-size:1.05rem;font-family:ui-monospace,Consolas,monospace;text-transform:uppercase}
+.shop{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.shop li{background:var(--panel2);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.shop .row{display:flex;align-items:center;gap:8px}
+.shop .sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--fg);flex:none}
+.shop .btn{font-size:.95rem;padding:6px 14px}
+.preview{display:flex;justify-content:center;padding:8px}
+.preview svg{width:120px;height:80px}
+.shields{font-family:var(--display);font-size:1.2rem;color:var(--accent);letter-spacing:.1em}
+.bigscore{font-family:var(--display);font-size:3.4rem;line-height:1;color:var(--accent)}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%);z-index:9;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-size:1.1rem;padding:10px 20px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.45);width:max-content;max-width:calc(100% - 32px);text-align:center}
 @keyframes bob{from{transform:translateY(-4px) rotate(-2deg)}to{transform:translateY(4px) rotate(2deg)}}
 @keyframes boom{40%{transform:scale(1.35);filter:brightness(2.2)}100%{transform:scale(.1) rotate(40deg);opacity:0}}
 @keyframes pop{0%{transform:scale(.8)}55%{transform:scale(1.18)}100%{transform:scale(1)}}
@@ -163,6 +190,7 @@ input.wide{width:9ch}
 
 <canvas id="sky" aria-hidden="true"></canvas>
 <canvas id="fx" aria-hidden="true"></canvas>
+<div id="toast" role="status" hidden></div>
 <div class="wrap">
   <header>
     <h1>Star <span>Math</span> Voyage</h1>
@@ -346,10 +374,143 @@ function genWord(t,d){
   }
 }
 
+/* Planet 6: perimeter and area, with figures drawn roughly to scale */
+function rectFig(l,w,top,right){
+  const m=Math.max(l,w), W=Math.max(46,Math.round(160*l/m)), H=Math.max(36,Math.round(100*w/m)), x=(240-W)/2-12, y=24;
+  return `<svg class="fig" viewBox="0 0 240 ${H+34}" width="240" height="${H+34}" role="img" aria-label="Rectangle, ${top} by ${right}">
+    <rect x="${x}" y="${y}" width="${W}" height="${H}" rx="3" fill="#38d1c8" fill-opacity=".25" stroke="#f3f2ff" stroke-width="3"/>
+    <text x="${x+W/2}" y="16" text-anchor="middle" class="figt">${top}</text>
+    <text x="${x+W+8}" y="${y+H/2+6}" class="figt">${right}</text></svg>`;
+}
+function lFig(a,b,h1,h2){
+  const s=Math.min(150/(a+b),104/h1), A=a*s, B=b*s, H1=h1*s, H2=h2*s, x=52, y=24, by=y+H1;
+  return `<svg class="fig" viewBox="0 0 250 ${Math.round(H1)+50}" width="250" height="${Math.round(H1)+50}" role="img" aria-label="L shape made of two rectangles">
+    <path d="M${x} ${y} H${x+A} V${by-H2} H${x+A+B} V${by} H${x} Z" fill="#38d1c8" fill-opacity=".25" stroke="#f3f2ff" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M${x+A} ${by-H2} V${by}" stroke="#f3f2ff" stroke-width="2" stroke-dasharray="5 5" fill="none"/>
+    <text x="${x+A/2}" y="16" text-anchor="middle" class="figt">${a} m</text>
+    <text x="${x-8}" y="${y+H1/2+6}" text-anchor="end" class="figt">${h1} m</text>
+    <text x="${x+A+B/2}" y="${by+20}" text-anchor="middle" class="figt">${b} m</text>
+    <text x="${x+A+B+6}" y="${by-H2/2+6}" class="figt">${h2} m</text></svg>`;
+}
+function genGeo(k,d){
+  const [lo,hi]=[[2,6],[3,10],[5,15],[8,25],[12,40]][d-1];
+  let l=rnd(lo,hi), w=rnd(lo,hi); if(l===w)l++; if(w>l)[l,w]=[w,l];
+  const per=2*(l+w), area=l*w, thing=pick(['landing pad','moon garden','solar panel','space dock']);
+  switch(k){
+    case 0: return {kind:'input',answer:per,wrongs:[area,l+w,2*l+w],
+      html:`${rectFig(l,w,l+' m',w+' m')}What is the perimeter of this ${thing}, in meters?`,
+      hint:`Perimeter is the distance all the way around. Add all four sides: ${l} + ${w} + ${l} + ${w}.`,
+      explain:`${l} + ${w} + ${l} + ${w} = <b>${per}</b> meters. A shortcut: (${l} + ${w}) × 2 = ${per}.`};
+    case 1:{
+      if(d===5){
+        const a=rnd(3,8), b=rnd(3,8), h1=rnd(6,12), h2=rnd(2,h1-2), ans=a*h1+b*h2;
+        return {kind:'input',answer:ans,wrongs:[(a+b)*h1,a*h1,a*h1+b*h1-h2,(a+b)*h2],
+          html:`${lFig(a,b,h1,h2)}This space dock is made of two rectangles. What is its total area, in square meters?`,
+          hint:`Find the area of each rectangle on its own, then add them. The dashed line shows where to split the shape.`,
+          explain:`Left rectangle: ${a} × ${h1} = ${a*h1}. Right rectangle: ${b} × ${h2} = ${b*h2}. Together: ${a*h1} + ${b*h2} = <b>${ans}</b> square meters.`};
+      }
+      return {kind:'input',answer:area,wrongs:[per,l+w,area+l],
+        html:`${rectFig(l,w,l+' m',w+' m')}What is the area of this ${thing}, in square meters?`,
+        hint:`Area is the space inside. Multiply the length by the width: ${l} × ${w}.`,
+        explain:`${l} × ${w} = <b>${area}</b> square meters.`};
+    }
+    case 2:{
+      const s=rnd(lo,Math.min(hi,12)), askP=Math.random()<.5;
+      return askP?{kind:'input',answer:4*s,wrongs:[s*s,2*s,3*s],
+        html:`${rectFig(s,s,s+' m',s+' m')}This ${thing} is a square. What is its perimeter, in meters?`,
+        hint:`A square has four equal sides. Add ${s} four times.`,
+        explain:`${s} + ${s} + ${s} + ${s} = 4 × ${s} = <b>${4*s}</b> meters.`}
+      :{kind:'input',answer:s*s,wrongs:[4*s,2*s,s*s+s],
+        html:`${rectFig(s,s,s+' m',s+' m')}This ${thing} is a square. What is its area, in square meters?`,
+        hint:`Area is length times width. For a square both are ${s}.`,
+        explain:`${s} × ${s} = <b>${s*s}</b> square meters.`};
+    }
+    case 3: return {kind:'input',answer:l,wrongs:[area-w,l+1,l-1,l+w],
+      html:`${rectFig(l,w,'? m',w+' m')}The area of this ${thing} is ${area} square meters. How many meters long is the missing side?`,
+      hint:`Area = length × width. What number times ${w} makes ${area}?`,
+      explain:`${area} ÷ ${w} = <b>${l}</b>. Check: ${l} × ${w} = ${area}.`};
+    case 4: return {kind:'input',answer:l,wrongs:[per-w,per-2*w,l+w,l+1],
+      html:`${rectFig(l,w,'? m',w+' m')}The perimeter of this ${thing} is ${per} meters. How many meters long is the missing side?`,
+      hint:`The two sides you know add up to ${w} + ${w} = ${2*w}. The other two sides share what is left of ${per}.`,
+      explain:`${per} − ${2*w} = ${2*l}. Split that between two equal sides: ${2*l} ÷ 2 = <b>${l}</b> meters.`};
+    default:{
+      const name=pick(['Zara','Milo','Nia','Captain Ray']);
+      return Math.random()<.5?{kind:'input',unit:'meters',answer:per,wrongs:[area,l+w,2*l+w],
+        html:`${name} builds a fence around a rectangular moon garden that is ${l} m long and ${w} m wide. How many meters of fence are needed?`,
+        hint:`A fence goes all the way around, so this is a perimeter question. Add all four sides.`,
+        explain:`${l} + ${w} + ${l} + ${w} = <b>${per}</b> meters of fence.`}
+      :{kind:'input',unit:'tiles',answer:area,wrongs:[per,l+w,area+w],
+        html:`A space dock floor is ${l} m long and ${w} m wide. Each tile covers 1 square meter. How many tiles cover the whole floor?`,
+        hint:`Covering a floor is an area question. Multiply the length by the width.`,
+        explain:`${l} × ${w} = <b>${area}</b> square meters, so ${area} tiles.`};
+    }
+  }
+}
+
+/* Planet 7: mixed numbers, fraction times a whole number, tenths and hundredths as decimals */
+function genFrac2(k,d){
+  const pad=n=>String(n).padStart(2,'0');
+  switch(k){
+    case 0:{
+      const dn=pick(d<=2?[2,3,4]:[3,4,5,6,8]), w=rnd(1,d<=2?3:d+1), n=rnd(1,dn-1), ans=w*dn+n;
+      return {kind:'input',math:1,answer:ans,wrongs:[w*n+dn,w+n,w*dn,w+dn+n],
+        html:`${w}${frac(n,dn)} = ${frac('?',dn)}`,
+        hint:`Each whole one is ${dn} pieces of size ${frac(1,dn)}. How many pieces are in ${w} whole${w>1?'s':''}? Then add the ${n} extra.`,
+        explain:`${w} whole${w>1?'s':''} = ${w} × ${dn} = ${w*dn} pieces. Add the ${n} extra: ${w*dn} + ${n} = <b>${ans}</b>. So ${w}${frac(n,dn)} = ${frac(ans,dn)}.`};
+    }
+    case 1:{
+      const dn=pick([3,4,5,6,8,10]), n=rnd(1,dn-1), m=rnd(2,d+2), ans=m*n;
+      return {kind:'input',math:1,answer:ans,wrongs:[m+n,n,m*dn,ans+dn],
+        html:`${m} × ${frac(n,dn)} = ${frac('?',dn)}`,
+        hint:`${m} × ${frac(n,dn)} means ${m} groups of ${n} pieces. The piece size, ${dn}, stays the same.`,
+        explain:`${m} × ${n} = <b>${ans}</b> pieces, so the answer is ${frac(ans,dn)}.`};
+    }
+    case 2:{
+      const hund=d>=3;
+      let n=!hund||(d>=4&&Math.random()<.4)?rnd(1,9):rnd(11,99); if(hund&&n%10===0)n++;
+      const right=hund?`0.${pad(n)}`:`0.${n}`;
+      const vals=!hund?[right,`0.0${n}`,`${n}.0`,`${n}.10`]:n<10?[right,`0.${n}`,`${n}.0`,`0.00${n}`]:[right,`${Math.floor(n/10)}.${n%10}`,`0.0${n}`,`${n}.0`];
+      return {kind:'choice',answer:right,options:shuffle(vals).map(v=>({label:v,value:v})),
+        html:`Which decimal equals ${frac(n,hund?100:10)}?`,
+        hint:`The first place after the decimal point is tenths. The second place is hundredths.`,
+        explain:hund?`${n} hundredths is <b>${right}</b>: ${Math.floor(n/10)} in the tenths place and ${n%10} in the hundredths place.`
+          :`${n} tenths is written with ${n} in the tenths place: <b>${right}</b>.`};
+    }
+    case 3:{
+      let A,B,va,vb;
+      if(d<=2){const x=rnd(1,9);let y;do{y=rnd(1,9)}while(y===x);A=`0.${x}`;B=`0.${y}`;va=x*10;vb=y*10}
+      else{
+        const x=rnd(1,9);let y;do{y=rnd(Math.max(11,x*10-25),Math.min(99,x*10+25))}while(y%10===0);
+        A=`0.${x}`;B=`0.${pad(y)}`;va=x*10;vb=y;
+        if(Math.random()<.5)[A,B,va,vb]=[B,A,vb,va];
+      }
+      return {kind:'choice',answer:va>vb?'A':'B',
+        options:[{label:A,value:'A'},{label:B,value:'B'},{label:'They are equal',value:'E',sm:1}],
+        html:`Which is bigger: ${A} or ${B}?`,
+        hint:`Line up the decimal points. Write both numbers with two places after the point so they are easy to compare.`,
+        explain:`${A} is ${va} hundredths and ${B} is ${vb} hundredths. So ${va>vb?A:B} is <b>bigger</b>.`};
+    }
+    case 4:{
+      const a=rnd(1,9), b=d>=4?rnd(11,89):rnd(1,9), ans=10*a+b;
+      return {kind:'input',math:1,answer:ans,wrongs:[a+b,10*b+a,a*b,100*a+b],
+        html:`${frac(a,10)} + ${frac(b,100)} = ${frac('?',100)}`,
+        hint:`Change the tenths into hundredths first: ${frac(a,10)} = ${frac(a*10,100)}.`,
+        explain:`${frac(a,10)} = ${frac(a*10,100)}. Then ${a*10} + ${b} = <b>${ans}</b>, so the answer is ${frac(ans,100)}.`};
+    }
+    default:{
+      const dn=pick(d<=2?[2,3,4]:[3,4,5,6,8]), q=rnd(2,d<=2?6:10), T=dn*q, n=d>=4?rnd(2,dn-1):1, ans=q*n;
+      return {kind:'input',unit:'snacks',answer:ans,wrongs:[q,T-dn,T-q,dn*n,T-ans],
+        html:`The crew packed ${T} space snacks. They eat ${frac(n,dn)} of them. How many snacks do they eat?`,
+        hint:`Split ${T} into ${dn} equal groups first.${n>1?` Then take ${n} of those groups.`:''}`,
+        explain:`${T} ÷ ${dn} = ${q} in each group.${n>1?` Take ${n} groups: ${n} × ${q} = <b>${ans}</b> snacks.`:` So ${frac(1,dn)} of ${T} is <b>${q}</b> snacks.`}`};
+    }
+  }
+}
+
 /* Asteroid Blast bonus round: tap every asteroid that fits the rule */
 function genBlast(lv,d){
-  const N=d<=2?6:9, nOK=rnd(2,N===6?3:4), ok=new Map(), no=new Map();
-  let html, mk, tip;
+  const N=d<=2?6:9, ok=new Map(), no=new Map();
+  let html, mk, tip, nOK=rnd(2,N===6?3:4);
   if(lv===0){
     const T=d<=2?rnd(3,9)*10:rnd(3,9)*100, u=d<=2?5:d===3?50:25;
     html=`Blast every asteroid that equals ${T}.`; tip=`Work out each asteroid one at a time.`;
@@ -380,7 +541,7 @@ function genBlast(lv,d){
       let n=a*m+pick([-1,1]), dn=b*m+pick([0,0,1]); if(n<1)n=a*m+1; if(n*b===a*dn)dn++;
       return [frac(n,dn),''];
     };
-  }else{
+  }else if(lv===4){
     const u=d<=2?10:d<=4?100:1000, T=rnd(11,98)*u, w={10:'ten',100:'hundred',1000:'thousand'}[u];
     html=`Blast every number that rounds to ${f(T)} when you round to the nearest ${w}.`;
     tip=`Numbers from ${f(T-u/2)} up to ${f(T+u/2-1)} round to ${f(T)}.`;
@@ -388,6 +549,25 @@ function genBlast(lv,d){
       if(good){let o;do{o=rnd(-u/2,u/2-1)}while(o===0);return [f(T+o),`${f(T+o)} rounds to ${f(T)}`]}
       const o=Math.random()<.5?-rnd(u/2+1,u+u/2-1):rnd(u/2,u+u/2-1);return [f(T+o),''];
     };
+  }else if(lv===5){
+    if(d>=3&&Math.random()<.5){
+      const T=2*rnd(d===3?6:10,d===3?12:20);
+      html=`Blast every rectangle with a perimeter of ${T} meters. The sides are in meters.`; tip=`Add the two sides, then double.`;
+      mk=good=>{const a=rnd(1,T/2-1), b=T/2-a+(good?0:pick([-1,1,2]));return b<1?mk(good):[`${a} by ${b}`,`${a} by ${b}: (${a} + ${b}) × 2 = ${T}`]};
+    }else{
+      const T=pick(d<=2?[12,16,18,20,24]:[24,30,36,40,48,60]), fs=[];
+      for(let a=2;a<=T/2;a++)if(T%a===0)fs.push(a);
+      html=`Blast every rectangle with an area of ${T} square meters. The sides are in meters.`; tip=`Multiply the two sides.`;
+      mk=good=>{const a=pick(fs), b=T/a+(good?0:pick([-1,1,2]));return b<1?mk(good):[`${a} by ${b}`,`${a} by ${b}: ${a} × ${b} = ${T}`]};
+    }
+  }else{
+    const x=rnd(1,9), same=[[`0.${x}`,`0.${x} is ${x} tenths`],[`0.${x}0`,`0.${x}0 is ${x*10} hundredths, the same as ${x} tenths`],[frac(x*10,100),`${frac(x*10,100)} is the same as ${frac(x,10)}`]];
+    if(x===5)same.push([frac(1,2),`${frac(1,2)} is the same as ${frac(5,10)}`]);
+    else if(x%2===0)same.push([frac(x/2,5),`${frac(x/2,5)} is the same as ${frac(x,10)}`]);
+    const other=[`0.0${x}`,frac(x,100),`${x}.0`,`0.${x}${x}`,frac(x+1,10),`0.${x===9?8:x+1}`,`${x}0.0`,frac(x,1000),frac(1,x)];
+    nOK=Math.min(nOK,same.length);
+    html=`Blast everything equal to ${frac(x,10)}.`; tip=`${frac(x,10)} is ${x} tenths. Tenths go in the first place after the decimal point.`;
+    mk=good=>good?pick(same):[pick(other),''];
   }
   let guard=0;
   while(ok.size<nOK&&guard++<300){const [l,n]=mk(true);ok.set(l,n)}
@@ -402,13 +582,36 @@ const LEVELS=[
   {name:'Multiplon',skill:'Multiplication facts and beyond',gen:genMult,alien:'Tok'},
   {name:'Dividus',skill:'Division with remainders',gen:genDiv,alien:'Mopsy'},
   {name:'Fractalia',skill:'Compare, match and add fractions',gen:genFrac,alien:'Quill'},
-  {name:'Enigma',skill:'Word problems and rounding',gen:genWord,alien:'Orbo'},
+  {name:'Enigma',skill:'Word problems and rounding',gen:genWord,alien:'Orbo',seven:1},
+  {name:'Geometra',skill:'Perimeter and area',gen:genGeo,alien:'Pix'},
+  {name:'Decima',skill:'Mixed numbers, decimals and fraction puzzles',gen:genFrac2,alien:'Dot'},
 ];
-const HUES=['#ff7e6b','#38d1c8','#b792ff','#9be564','#ffb14a'];
+const HUES=['#ff7e6b','#38d1c8','#b792ff','#9be564','#ffb14a','#ff8fc7','#7fb2ff'];
 const RANKS=[[0,'Space Cadet'],[150,'Pilot'],[400,'Captain'],[800,'Commander'],[1500,'Galaxy Legend']];
+/* Hangar shop: the first item in each group is free and owned from the start */
+const SHOP={
+  ship:[{n:'Classic White',c:'#f3f2ff',p:0},{n:'Comet Red',c:'#ff6b5e',p:100},{n:'Nebula Purple',c:'#b792ff',p:200},{n:'Solar Gold',c:'#ffc93c',p:400}],
+  laser:[{n:'Sun Beam',c:'#ffc93c',p:0},{n:'Slime Green',c:'#7dff7a',p:80},{n:'Bubblegum Pink',c:'#ff8fc7',p:150},{n:'Ice Blue',c:'#8fe9ff',p:250}],
+  boom:[{n:'Star Burst',p:0},{n:'Bubble Pop',p:120},{n:'Heart Shower',p:200},{n:'Mega Burst',p:350}],
+};
+const CATS=[['ship','Rocket paint'],['laser','Laser color'],['boom','Blast effect']];
+const BADGES=[
+  ['first','First Rescue','Rescue your first alien'],
+  ['combo','Hot Streak','Get 5 right in a row'],
+  ['perfect','Perfect Landing','Get 8 of 8 on a planet'],
+  ['sharp','Sharp Shooter','Finish a planet with no hints'],
+  ['power','Max Power','Reach challenge level 5'],
+  ['ace','Asteroid Ace','Clear a bonus round on the first try'],
+  ['back','Comeback Kid','Beat a question that came back'],
+  ['paint','Fresh Paint','Buy something in the hangar'],
+  ['rich','Stardust Saver','Earn 500 stardust'],
+  ['storm','Storm Chaser','Score 15 in Asteroid Storm'],
+  ['crew','Full Crew','Rescue every alien'],
+  ['stars','Star Collector','Collect every star'],
+];
 
 function makePlan(i){
-  const s=i===4?shuffle([0,1,2,3,4,5,6]).slice(0,6):[0,1,2,3,4,5];
+  const s=LEVELS[i].seven?shuffle([0,1,2,3,4,5,6]).slice(0,6):[0,1,2,3,4,5];
   return [s[0],s[1],s[2],'B',s[3],s[4],s[5],'B'];
 }
 function makeQ(lv,k,d,seen){
@@ -432,8 +635,9 @@ function arenaOptions(q){
     return {opts:shuffle(out).map(p=>({label:`${p[0]} R${p[1]}`,value:key(p)})),ans:key(q.answer)};
   }
   const A=q.answer, s=q.step;
-  const cand=s?[A+s,A-s,A+2*s,A-2*s]:[A+1,A-1,A+2,A-2,A+10,A-10,...(A>=200?[A+100,A-100,A+20]:[A+3])];
-  const wrong=shuffle([...new Set(cand)].filter(x=>x>0&&x!==A)).slice(0,3);
+  const generic=s?[A+s,A-s,A+2*s,A-2*s]:[A+1,A-1,A+2,A-2,A+10,A-10,...(A>=200?[A+100,A-100,A+20]:[A+3])];
+  const cand=[...shuffle(q.wrongs||[]),...shuffle(generic)];
+  const wrong=[...new Set(cand)].filter(x=>Number.isInteger(x)&&x>0&&x!==A).slice(0,3);
   return {opts:shuffle([A,...wrong]).map(x=>({label:f(x),value:String(x)})),ans:String(A)};
 }
 
@@ -441,14 +645,42 @@ function arenaOptions(q){
 function load(){
   let p=null;
   try{p=JSON.parse(localStorage.getItem('smv1'))}catch(e){}
-  if(!p||!Array.isArray(p.stars)||p.stars.length!==5)p={stars:[0,0,0,0,0],dust:0,mute:false};
-  if(!Array.isArray(p.diff)||p.diff.length!==5)p.diff=[2,2,2,2,2];
+  if(!p||!Array.isArray(p.stars))p={stars:[],dust:0,mute:false};
+  if(!Array.isArray(p.diff))p.diff=[];
+  if(!Array.isArray(p.weak))p.weak=[];
+  LEVELS.forEach((_,i)=>{p.stars[i]=p.stars[i]||0;p.diff[i]=p.diff[i]||2;if(!(p.weak[i]>=0))p.weak[i]=-1});
+  p.dust=p.dust|0; p.earned=p.earned==null?p.dust:p.earned|0;
+  p.own=p.own|0; p.bad=p.bad|0; p.storm=p.storm|0; p.open=!!p.open;
+  if(!Array.isArray(p.eq)||p.eq.length!==3)p.eq=[0,0,0];
   return p;
 }
 function save(){try{localStorage.setItem('smv1',JSON.stringify(P))}catch(e){}}
 let P=load(), G=null;
-const unlocked=i=>i===0||P.stars[i-1]>0;
+const unlocked=i=>i===0||P.open||P.stars[i-1]>0;
 const starRow=n=>'★★★'.split('').map((s,i)=>i<n?s:`<span class="off">${s}</span>`).join('');
+
+/* ---------- save codes: the whole save packed into 18 letters and digits ---------- */
+const B32='0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const WIDTHS=()=>[...LEVELS.map(()=>2),16,16,9,2,2,2,12,10,1];
+function saveCode(){
+  const vals=[...P.stars,Math.min(P.earned,65535),Math.min(P.dust,65535),P.own,...P.eq,P.bad,Math.min(P.storm,1023),P.open?1:0], w=WIDTHS();
+  let v=0n; vals.forEach((x,i)=>{v=(v<<BigInt(w[i]))|BigInt(x)});
+  v=v*64n+(v%61n);
+  let s=''; for(let i=0;i<18;i++){s=B32[Number(v&31n)]+s;v>>=5n}
+  return s.replace(/(.{6})(?=.)/g,'$1-');
+}
+function loadCode(text){
+  const t=text.toUpperCase().replace(/O/g,'0').replace(/[IL]/g,'1').replace(/[^0-9A-Z]/g,'');
+  if(t.length!==18)return false;
+  let v=0n; for(const ch of t){const i=B32.indexOf(ch);if(i<0)return false;v=v*32n+BigInt(i)}
+  const chk=v%64n; v/=64n; if(v%61n!==chk)return false;
+  const w=WIDTHS(), out=[], n=LEVELS.length;
+  for(let i=w.length-1;i>=0;i--){const b=BigInt(w[i]);out[i]=Number(v&((1n<<b)-1n));v>>=b}
+  if(v!==0n)return false;
+  P.stars=out.slice(0,n); P.earned=out[n]; P.dust=out[n+1]; P.own=out[n+2]; P.eq=out.slice(n+3,n+6);
+  P.bad=out[n+6]; P.storm=out[n+7]; P.open=!!out[n+8];
+  save(); return true;
+}
 
 /* ---------- alien guides ---------- */
 function alien(i,mood){
@@ -488,6 +720,7 @@ const sndWin=()=>[523,659,784,1047,1319].forEach((n,i)=>tone(n,i*.13,.3));
 /* ---------- star burst ---------- */
 let fxRun=0;
 function burst(count){
+  const style=P.eq[2]; if(style===3)count*=2;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const c=$('#fx'), dpr=Math.min(devicePixelRatio||1,2), w=innerWidth, h=innerHeight;
   c.width=w*dpr; c.height=h*dpr;
@@ -503,7 +736,9 @@ function burst(count){
     if(t>=1)return;
     for(const p of ps){
       p.x+=p.vx; p.y+=p.vy; p.vy+=.28; p.s+=.2;
-      x.globalAlpha=1-t; x.fillStyle=p.c; x.beginPath();
+      x.globalAlpha=1-t; x.fillStyle=x.strokeStyle=p.c; x.beginPath();
+      if(style===1){x.lineWidth=2.5;x.arc(p.x,p.y,p.r,0,6.3);x.stroke();continue}
+      if(style===2){const r=p.r;x.moveTo(p.x,p.y+r);x.bezierCurveTo(p.x-2*r,p.y-r*.6,p.x-r*.5,p.y-r*1.6,p.x,p.y-r*.5);x.bezierCurveTo(p.x+r*.5,p.y-r*1.6,p.x+2*r,p.y-r*.6,p.x,p.y+r);x.fill();continue}
       for(let k=0;k<10;k++){const rr=k%2?p.r*.45:p.r, an=p.s+k*Math.PI/5; x.lineTo(p.x+Math.cos(an)*rr,p.y+Math.sin(an)*rr)}
       x.fill();
     }
@@ -512,22 +747,72 @@ function burst(count){
 }
 
 function chrome(){
-  const dust=P.dust+(G?G.dust:0);
-  $('#rank').textContent=RANKS.filter(r=>dust>=r[0]).pop()[1];
+  const dust=P.dust+(G?G.dust:0), earned=P.earned+(G?G.dust:0);
+  $('#rank').textContent=RANKS.filter(r=>earned>=r[0]).pop()[1];
   $('#dust').textContent=`✦ ${f(dust)} stardust`;
   $('#snd').textContent=P.mute?'Sound off':'Sound on';
   $('#snd').setAttribute('aria-pressed',String(!P.mute));
 }
 $('#snd').addEventListener('click',()=>{P.mute=!P.mute;save();chrome();if(!P.mute)tone(660,0,.15)});
 
+/* ---------- badges and toasts ---------- */
+let toastQ=[], toastOn=false;
+function toast(t){toastQ.push(t);if(!toastOn)nextToast()}
+function nextToast(){
+  const el=$('#toast'), t=toastQ.shift();
+  if(!t){toastOn=false;el.hidden=true;return}
+  toastOn=true; el.textContent=t; el.hidden=false;
+  tone(988,0,.12); tone(1319,.1,.22);
+  setTimeout(nextToast,2600);
+}
+function award(id){
+  const i=BADGES.findIndex(b=>b[0]===id);
+  if(i<0||(P.bad>>i&1))return;
+  P.bad|=1<<i; save(); toast(`Badge earned: ${BADGES[i][1]}`);
+}
+
+/* ---------- hangar shop ---------- */
+function renderHangar(){
+  G=null; chrome();
+  const has=(c,i)=>i===0||!!(P.own>>(c*3+i-1)&1);
+  $('#view').innerHTML=`
+    <div class="wrap">
+      <div class="playhead">
+        <button type="button" class="ghost" id="quit">← Map</button>
+        <span class="lvl">Hangar shop</span>
+        <span class="count">✦ ${f(P.dust)} to spend</span>
+      </div>
+      <div class="qcard">
+        <div class="preview">${rocketSVG()}</div>
+        ${CATS.map(([key,label],c)=>`<h3>${label}</h3><ul class="shop">${SHOP[key].map((it,i)=>{
+          const own=has(c,i), on=P.eq[c]===i;
+          return `<li><span class="row">${it.c?`<span class="sw" style="background:${it.c}"></span>`:''}<span>${it.n}</span></span>
+            <button type="button" class="btn${own?' alt':''}" data-c="${c}" data-i="${i}" ${on||(!own&&P.dust<it.p)?'disabled':''}>${on?'In use':own?'Use':`Buy · ✦ ${it.p}`}</button></li>`;
+        }).join('')}</ul>`).join('')}
+        <p class="lead">Earn stardust by answering questions. Harder questions and bonus rounds pay more.</p>
+      </div>
+    </div>`;
+  $('#quit').addEventListener('click',renderMap);
+  document.querySelectorAll('.shop .btn').forEach(b=>b.addEventListener('click',()=>{
+    const c=+b.dataset.c, i=+b.dataset.i, it=SHOP[CATS[c][0]][i];
+    if(!has(c,i)){
+      if(P.dust<it.p)return;
+      P.dust-=it.p; P.own|=1<<(c*3+i-1); award('paint');
+    }
+    P.eq[c]=i; save(); renderHangar();
+    if(c===2)burst(30);
+  }));
+}
+
 /* ---------- map ---------- */
 function renderMap(){
   G=null; chrome();
   const total=P.stars.reduce((a,b)=>a+b,0), done=P.stars.every(s=>s>0);
+  const stormOpen=P.open||P.stars.filter(s=>s>0).length>=3;
   $('#view').innerHTML=`
     <div class="wrap">
-      <p class="lead">A math storm scattered five alien friends across the galaxy. Fly to each planet and get ${PASS} of ${QN} questions right to rescue the alien who lives there. The questions get harder when you are on a roll and easier when you need a hand. There is no timer.</p>
-      ${done?`<div class="champ"><h2>Galaxy Champion!</h2><p>You rescued the whole crew. Replay any planet to collect all 15 stars and reach Galaxy Legend.</p></div>`:''}
+      <p class="lead">A math storm scattered seven alien friends across the galaxy. Fly to each planet and get ${PASS} of ${QN} questions right to rescue the alien who lives there. The questions get harder when you are on a roll and easier when you need a hand. There is no timer.</p>
+      ${done?`<div class="champ"><h2>Galaxy Champion!</h2><p>You rescued the whole crew. Replay any planet to collect all ${LEVELS.length*3} stars and reach Galaxy Legend.</p></div>`:''}
       <ol class="map">${LEVELS.map((L,i)=>`
         <li><button type="button" class="pbtn p${i+1}" data-l="${i}" ${unlocked(i)?'':'disabled'}>
           <span class="planet"></span>
@@ -542,27 +827,64 @@ function renderMap(){
       <div class="crew"><h3>Your crew</h3>
         <ul class="crewrow">${LEVELS.map((L,i)=>`<li class="${P.stars[i]?'':'lost'}">${alien(i,P.stars[i]?'happy':'')}<span>${P.stars[i]?L.alien:'Lost'}</span></li>`).join('')}</ul>
       </div>
-      <div class="foot"><span>${total} of 15 stars collected</span><button type="button" class="ghost" id="reset">Reset progress</button></div>
+      <div class="tools">
+        <button type="button" class="btn alt" id="hangar">Hangar shop</button>
+        <button type="button" class="btn alt" id="storm" ${stormOpen?'':'disabled'}>Asteroid Storm</button>
+        <small>${stormOpen?`Endless mixed questions with 3 shields. Best score: ${P.storm}.`:`Rescue 3 aliens to open Asteroid Storm.`}</small>
+      </div>
+      <div class="crew"><h3>Badges: ${BADGES.filter((_,i)=>P.bad>>i&1).length} of ${BADGES.length}</h3>
+        <ul class="badges">${BADGES.map((b,i)=>`<li class="badge${P.bad>>i&1?' got':''}"><span class="medal" aria-hidden="true">★</span><b>${b[1]}</b><span>${b[2]}</span></li>`).join('')}</ul>
+      </div>
+      <div class="crew savebox"><details><summary>Save code</summary>
+        <div class="saveinner">
+          <p>Your progress saves by itself in this browser. To carry on using another device or browser, write down this code and enter it there.</p>
+          <p class="code" id="mycode">${saveCode()}</p>
+          <button type="button" class="ghost" id="copy">Copy code</button>
+          <form id="loadf" novalidate>
+            <label>Enter a save code<input id="codein" class="codein" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30"></label>
+            <button class="btn alt" type="submit">Load</button>
+          </form>
+          <p id="codemsg" aria-live="polite"></p>
+        </div>
+      </details></div>
+      <div class="foot"><span>${total} of ${LEVELS.length*3} stars collected</span><button type="button" class="ghost" id="reset">Reset progress</button></div>
     </div>`;
   document.querySelectorAll('.pbtn').forEach(b=>b.addEventListener('click',()=>startLevel(+b.dataset.l)));
+  $('#hangar').addEventListener('click',renderHangar);
+  $('#storm').addEventListener('click',startStorm);
+  $('#copy').addEventListener('click',e=>{
+    try{navigator.clipboard.writeText(saveCode()).then(()=>{e.target.textContent='Copied'},()=>{e.target.textContent='Select the code to copy it'})}
+    catch(err){e.target.textContent='Select the code to copy it'}
+  });
+  $('#loadf').addEventListener('submit',e=>{
+    e.preventDefault();
+    const raw=$('#codein').value;
+    if(raw.toUpperCase().replace(/[^A-Z0-9]/g,'')==='UNLOCKALL'){P.open=true;save();renderMap();toast('All planets unlocked');return}
+    if(loadCode(raw)){renderMap();toast('Save loaded')}
+    else $('#codemsg').textContent='That code does not look right. Check every letter and number, then try again.';
+  });
   let armed=false;
   $('#reset').addEventListener('click',e=>{
     if(!armed){armed=true;e.target.textContent='Tap again to erase all stars';setTimeout(()=>{armed=false;if(e.target.isConnected)e.target.textContent='Reset progress'},4000);return}
-    P={stars:[0,0,0,0,0],dust:0,mute:P.mute,diff:[2,2,2,2,2]};save();renderMap();
+    const mute=P.mute;
+    try{localStorage.removeItem('smv1')}catch(err){}
+    P=load(); P.mute=mute; save(); renderMap();
   });
 }
 
 function startLevel(i){
-  G={lvl:i,plan:makePlan(i),i:0,tries:0,res:[],streak:0,best:0,dust:0,d:P.diff[i],top:P.diff[i],seen:[],missed:[],shift:''};
+  G={lvl:i,plan:makePlan(i),i:0,tries:0,res:[],streak:0,best:0,dust:0,d:P.diff[i],top:P.diff[i],seen:[],missed:[],retry:[],shift:''};
+  /* a kind of question missed last time comes back once in this round */
+  if(P.weak[i]>=0){G.plan[5]=P.weak[i];G.retry.push(5)}
   G.q=makeQ(i,G.plan[0],G.d,G.seen); G.seen.push(G.q.html);
   renderPlay();
 }
 
 /* ---------- play ---------- */
-const ROCKET=`<svg viewBox="0 0 48 32" width="48" height="32" aria-hidden="true">
+const rocketSVG=()=>`<svg viewBox="0 0 48 32" width="48" height="32" aria-hidden="true">
   <path class="flame" d="M0 16 L12 10 L12 22 Z" fill="#ffc93c"/>
   <path d="M12 6 L20 10 L12 12 Z M12 26 L20 22 L12 20 Z" fill="#ff7e6b"/>
-  <path d="M10 10 H30 Q44 12 46 16 Q44 20 30 22 H10 Z" fill="#f3f2ff"/>
+  <path d="M10 10 H30 Q44 12 46 16 Q44 20 30 22 H10 Z" fill="${SHOP.ship[P.eq[0]].c}"/>
   <circle cx="31" cy="16" r="3.5" fill="#38d1c8"/></svg>`;
 
 /* Flight arena: answer asteroids drift down their lanes; the rocket flies under one and fires */
@@ -570,10 +892,10 @@ let lane=0, busy=false;
 function arenaHTML(q){
   const o=q.arena.opts, n=o.length, W=100/n, T=17-G.d*1.6;
   return `<p class="how">Fly under the asteroid with the right answer and blast it. Tap an asteroid, or steer with ← → and fire with Space.${q.kind==='qr'?' R means remainder.':''}</p>
-    <div class="arena" id="arena" style="--w:${W}%">
+    <div class="arena" id="arena" style="--w:${W}%;--laser:${SHOP.laser[P.eq[1]].c}">
       ${o.map((op,j)=>`<div class="faller" style="left:${j*W}%;animation-duration:${T.toFixed(1)}s;animation-delay:-${(T*((j*.37+.15)%1)).toFixed(2)}s"><button type="button" class="rock${op.sm||(op.label.length>6&&!op.label.includes('<'))?' long':''}" data-v="${op.value}" data-j="${j}">${op.label}</button></div>`).join('')}
       <div class="beam" id="beam" hidden></div>
-      <div class="ship" id="ship">${ROCKET}</div>
+      <div class="ship" id="ship">${rocketSVG()}</div>
     </div>`;
 }
 function moveShip(n){const s=$('#ship');if(s)s.style.left=`calc(${100/n}% * ${lane+.5} - 24px)`}
@@ -626,11 +948,12 @@ function renderPlay(){
     <div class="wrap">
       <div class="playhead">
         <button type="button" class="ghost" id="quit">← Map</button>
-        <span class="lvl">Planet ${G.lvl+1}: ${L.name}</span>
-        <span class="count">Question ${G.i+1} of ${QN}</span>
+        <span class="lvl">${G.storm?'Asteroid Storm':`Planet ${G.lvl+1}: ${L.name}`}</span>
+        <span class="count">${G.storm?`Score ${G.score} · Best ${P.storm}`:`Question ${G.i+1} of ${QN}`}</span>
       </div>
-      <div class="track p${G.lvl+1}"><div class="rocket" id="rocket" style="--t:${G.res.length/QN}">${ROCKET}</div><span class="planet"></span></div>
-      <ol class="dots" id="dots" aria-label="Progress"></ol>
+      ${G.storm?`<div class="shields" role="img" aria-label="${G.shields} of 3 shields left">Shields ${'◆'.repeat(G.shields)}${'◇'.repeat(3-G.shields)}</div>`
+      :`<div class="track p${G.lvl+1}"><div class="rocket" id="rocket" style="--t:${G.res.length/QN}">${rocketSVG()}</div><span class="planet"></span></div>
+      <ol class="dots" id="dots" aria-label="Progress"></ol>`}
       <div class="meters">
         <span>Challenge level<span class="power" id="power" role="img"></span></span>
         <span class="combo" id="combo"></span>
@@ -663,7 +986,9 @@ function renderPlay(){
   if(G.tries===1)talk('think','hint','Not yet. Here is a hint.',q.hint||q.tip);
   else{
     const n=L.alien;
-    const line=G.i===0?`Hi, I'm ${n}! The storm trapped me here. Get ${PASS} right and I can join your crew.`
+    const line=q.retry?`This one is like a question that tricked you before. You know the trick now!`
+      :G.storm?(G.i===0?`Asteroid Storm! Every hit scores a point, and a wrong shot costs a shield.`:pick([`${n} here. Keep blasting!`,`Steady hands, pilot.`,`${n} is cheering for you!`]))
+      :G.i===0?`Hi, I'm ${n}! The storm trapped me here. Get ${PASS} right and I can join your crew.`
       :q.kind==='blast'?`Bonus round! Tap every asteroid that fits the rule, then press Fire.`
       :G.shift==='up'?`You are on a roll, so I turned the challenge up to level ${G.d}. More stardust for you!`
       :G.shift==='down'?`That last one was tricky. Here is one that is a little easier.`
@@ -673,8 +998,8 @@ function renderPlay(){
 }
 
 function meters(){
-  $('#dots').innerHTML=Array.from({length:QN},(_,i)=>`<li class="${i<G.res.length?'d'+G.res[i]:i===G.i?'cur':''}"></li>`).join('');
-  $('#rocket').style.setProperty('--t',G.res.length/QN);
+  if($('#dots'))$('#dots').innerHTML=Array.from({length:QN},(_,i)=>`<li class="${i<G.res.length?'d'+G.res[i]:i===G.i?'cur':''}"></li>`).join('');
+  if($('#rocket'))$('#rocket').style.setProperty('--t',G.res.length/QN);
   $('#power').innerHTML=Array.from({length:DMAX},(_,i)=>`<i class="${i<G.d?'on':''}"></i>`).join('');
   $('#power').setAttribute('aria-label',`${G.d} of ${DMAX}`);
   const c=$('#combo'); c.textContent=G.streak>=2?`Combo ×${G.streak}`:''; c.classList.toggle('hot',G.streak>=2);
@@ -682,6 +1007,7 @@ function meters(){
 
 function judge(ok,dynHint){
   const q=G.q, blast=q.kind==='blast';
+  if(G.storm&&!ok)G.tries=1; /* no second tries in the storm */
   if(ok){
     const first=G.tries===0;
     G.streak=first?G.streak+1:0; G.best=Math.max(G.best,G.streak);
@@ -689,7 +1015,13 @@ function judge(ok,dynHint){
     G.dust+=gain; G.res.push(first?2:1);
     G.shift='';
     /* adapt: move up fast at the gentle levels, then only after two in a row */
-    if(first&&G.d<DMAX&&(G.d<3||G.streak%2===0)){G.d++;G.shift='up';G.top=Math.max(G.top,G.d)}
+    if(G.storm)G.score++;
+    if(first&&G.d<DMAX&&(G.storm?G.score%3===0:(G.d<3||G.streak%2===0))){G.d++;G.shift='up';G.top=Math.max(G.top,G.d)}
+    if(G.streak>=5)award('combo');
+    if(G.d===DMAX)award('power');
+    if(blast&&first)award('ace');
+    if(q.retry&&first){award('back');P.weak[G.lvl]=-1}
+    if(P.earned+G.dust>=500)award('rich');
     if(!blast)sndGood(); if(G.shift==='up')sndUp();
     burst(first?(blast?46:30):14);
     const cheer=blast?'Kaboom! Direct hit!':pick(['Correct!','You got it!','Nice work!','Right on target!','Stellar!']);
@@ -701,9 +1033,18 @@ function judge(ok,dynHint){
     const a=$('#ans'); if(a){a.focus();a.select()}
   }else{
     G.res.push(0); G.missed.push({html:q.html,explain:q.explain}); sndBad();
-    G.shift='';
-    if(G.d>1){G.d--;G.shift='down'}
-    finish('think','miss','Here is how to solve it.',q.explain);
+    G.shift=''; G.streak=0;
+    if(G.storm)G.shields--;
+    else{
+      if(G.d>1){G.d--;G.shift='down'}
+      /* bring this kind of question back later in the round, and once more next time */
+      const k=G.plan[G.i];
+      if(k!=='B'){
+        P.weak[G.lvl]=k;
+        for(let j=QN-1;j>G.i;j--)if(G.plan[j]!=='B'&&!G.retry.includes(j)){G.plan[j]=k;G.retry.push(j);break}
+      }
+    }
+    finish('think','miss',G.storm?'Shield hit! Here is how to solve it.':'Here is how to solve it.',q.explain);
   }
 }
 
@@ -719,8 +1060,8 @@ function finish(mood,cls,title,body){
   document.querySelectorAll('#af input,#check,#fire').forEach(el=>el.disabled=true);
   const fr=$('#fireRow'); if(fr)fr.hidden=true;
   talk(mood,cls,title,body,true);
-  const last=G.i===QN-1;
-  $('#actions').innerHTML=`<button type="button" class="btn" id="next">${last?'See results':'Next question'}</button>`;
+  const last=G.storm?G.shields<=0:G.i===QN-1;
+  $('#actions').innerHTML=`<button type="button" class="btn" id="next">${last?(G.storm?'See score':'See results'):'Next question'}</button>`;
   $('#next').addEventListener('click',advance);
   $('#next').focus();
   meters(); chrome();
@@ -728,18 +1069,61 @@ function finish(mood,cls,title,body){
 
 function advance(){
   G.i++; G.tries=0;
+  if(G.storm){
+    if(G.shields<=0){renderStormOver();return}
+    stormQ(); renderPlay(); return;
+  }
   if(G.i>=QN){renderResult();return}
   G.q=makeQ(G.lvl,G.plan[G.i],G.d,G.seen); G.seen.push(G.q.html);
+  if(G.retry.includes(G.i))G.q.retry=1;
   renderPlay();
+}
+
+/* ---------- Asteroid Storm: endless mixed practice from every rescued planet ---------- */
+function stormQ(){
+  const pool=LEVELS.map((_,i)=>i).filter(i=>P.open||P.stars[i]>0);
+  G.lvl=pick(pool.length?pool:[0]);
+  G.q=makeQ(G.lvl,rnd(0,LEVELS[G.lvl].seven?6:5),G.d,G.seen);
+  G.seen.push(G.q.html); if(G.seen.length>40)G.seen.shift();
+}
+function startStorm(){
+  G={storm:1,shields:3,score:0,lvl:0,plan:[],i:0,tries:0,res:[],streak:0,best:0,dust:0,d:2,top:2,seen:[],missed:[],retry:[],shift:''};
+  stormQ(); renderPlay();
+}
+function renderStormOver(){
+  const g=G, record=g.score>P.storm;
+  P.dust+=g.dust; P.earned+=g.dust; P.storm=Math.max(P.storm,g.score); save(); G=null; chrome();
+  if(g.score>=15)award('storm');
+  $('#view').innerHTML=`
+    <div class="qcard result">
+      <h2>${record?'New high score!':'Storm over!'}</h2>
+      <div class="bigscore">${g.score}</div>
+      <p>You blasted ${g.score} asteroid${g.score===1?'':'s'} and collected ${g.dust} stardust. Your best score is ${P.storm}.</p>
+      <p class="lead">Top challenge level: ${g.top} of ${DMAX}. Best combo: ${g.best} in a row.</p>
+      <div class="actions">
+        <button type="button" class="btn" id="again">Fly into the storm again</button>
+        <button type="button" class="btn alt" id="home">Back to map</button>
+      </div>
+      ${g.missed.length?`<div class="review"><h3>Look at these again</h3>${g.missed.map(q=>`<div class="fb"><p>${q.html}</p><div>${q.explain}</div></div>`).join('')}</div>`:''}
+    </div>`;
+  $('#again').addEventListener('click',startStorm);
+  $('#home').addEventListener('click',renderMap);
+  $('#again').focus();
+  if(record){sndWin();burst(60)}
 }
 
 /* ---------- results ---------- */
 function renderResult(){
   const g=G, i=g.lvl, L=LEVELS[i], c=g.res.filter(x=>x>0).length, stars=c>=QN?3:c>=QN-1?2:c>=PASS?1:0;
   const firstRescue=stars>0&&P.stars[i]===0;
-  P.stars[i]=Math.max(P.stars[i],stars); P.dust+=g.dust; P.diff[i]=g.d; save(); G=null; chrome();
+  P.stars[i]=Math.max(P.stars[i],stars); P.dust+=g.dust; P.earned+=g.dust; P.diff[i]=g.d; save(); G=null; chrome();
+  if(firstRescue)award('first');
+  if(c===QN)award('perfect');
+  if(g.res.every(x=>x===2))award('sharp');
+  if(P.stars.every(s=>s>0))award('crew');
+  if(P.stars.every(s=>s===3))award('stars');
   const title=!stars?'So close. Try again!':firstRescue?`You rescued ${L.alien}!`:stars===3?'Perfect landing!':`${L.name} explored!`;
-  const msg=stars?`You got ${c} of ${QN} right and collected ${g.dust} stardust.${firstRescue&&i<4?` ${LEVELS[i+1].name} is now unlocked.`:''}`
+  const msg=stars?`You got ${c} of ${QN} right and collected ${g.dust} stardust.${firstRescue&&i<LEVELS.length-1?` ${LEVELS[i+1].name} is now unlocked.`:''}`
     :`You got ${c} of ${QN} right. ${L.alien} needs ${PASS} to break free. The questions change every time and start a little easier, so give it another go.`;
   $('#view').innerHTML=`
     <div class="qcard result">
@@ -749,8 +1133,8 @@ function renderResult(){
       <p>${msg}</p>
       <p class="lead">Top challenge level: ${g.top} of ${DMAX}. Best combo: ${g.best} in a row.</p>
       <div class="actions">
-        ${stars&&i<4?`<button type="button" class="btn" id="go">Fly to ${LEVELS[i+1].name}</button>`:''}
-        <button type="button" class="btn ${stars&&i<4?'alt':''}" id="again">Play ${L.name} again</button>
+        ${stars&&i<LEVELS.length-1?`<button type="button" class="btn" id="go">Fly to ${LEVELS[i+1].name}</button>`:''}
+        <button type="button" class="btn ${stars&&i<LEVELS.length-1?'alt':''}" id="again">Play ${L.name} again</button>
         <button type="button" class="btn alt" id="home">Back to map</button>
       </div>
       ${g.missed.length?`<div class="review"><h3>Look at these again</h3>${g.missed.map(q=>`<div class="fb"><p>${q.html}</p><div>${q.explain}</div></div>`).join('')}</div>`:''}
